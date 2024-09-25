@@ -1,0 +1,49 @@
+Dataset Class (filepath, savepath)
+
+    Attributes:
+
+        filepath:str -> path to dataset json file
+
+        savepath:str -> path of folder to save class file in
+
+        data:list[dict] -> data from json file as list, each element containing video info as dict
+
+        _downloadArguments:dict -> arguments for video download
+
+        _resizeTo:tuple[int,int] -> what to resize video to
+
+    Methods:
+
+        getUrl(index:int) => str
+            returns the url of the video for data[index]
+
+        getClass(index:int) => str
+            returns the class of the video for data[index]
+
+        getPixelCrop(index:int) => list[slice(), slice()]
+            returns slice object of pixel to crop video to. In format [heightStart:heightEnd, widthStart, widthEnd]
+
+        getClipTime(index:int) => (float, float)
+            returns start and end time for clip
+
+        isVideoDownloaded(index:int) => bool
+            returns whether video is downloaded or not
+
+        downloadVideo(index:int) => bool
+            downloads clip from video for data[index].
+            returns True if download completes, False if video cannot be downloaded
+        
+        deleteVideo(index:int) => None
+            deletes clip from downloads (mainly to not fill up storage)
+
+        getFrames(index:int) => numpy.array
+            returns an array of frames. Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and array of frames is returned
+
+        saveFrames(index:int) => None
+            save array of frames to file (to be used as input for AI model)
+
+        deleteFrames(index:int) => None
+            delete file of frames (usually not needed but to save storage I guess. These files shouldn't be too big though)
+
+        _showFrames(index:int) => None
+            show frames from file (only really used for visualizing data)
