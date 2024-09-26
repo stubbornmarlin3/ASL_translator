@@ -1,13 +1,16 @@
-from yt_dlp import YoutubeDL
-from yt_dlp.utils import download_range_func
-import json
+import numpy as np
 
-args = {
-    "format" : "mp4/best",
-    "download_ranges" : download_range_func(None, [(407.92, 409.126)]),
-    "force_keyframes_at_cuts" : True
-}
+t = np.random.randint(0,255,(500,500))
+print(t)
 
-URLS = ['https://www.youtube.com/watch?v=jQb9NL9_S6U']
-with YoutubeDL(args) as ydl:
-    ydl.download(URLS)
+with open("./test.gz", "wb") as f:
+    x = t.flatten()
+    for i in x:
+        f.write(int(i).to_bytes())
+
+with open("./test.gz", "rb") as f:
+    frames = []
+    while frame := [byte for byte in f.read(500)]:
+        frames.append(frame)
+
+    print(t == np.array(frames))

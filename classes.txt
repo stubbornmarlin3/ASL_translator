@@ -1,16 +1,14 @@
-Dataset Class (filepath, savepath)
+Dataset Class (filePath, savePath)
 
     Attributes:
 
-        filepath:str -> path to dataset json file
+        filePath:str -> path to dataset json file
 
-        savepath:str -> path of folder to save class file in
+        savePath:str -> path of folder to save class file in
 
         data:list[dict] -> data from json file as list, each element containing video info as dict
 
-        _downloadArguments:dict -> arguments for video download
-
-        _resizeTo:tuple[int,int] -> what to resize video to
+        frameSize:tuple[int,int] -> size of frame to be saved
 
     Methods:
 
@@ -20,30 +18,29 @@ Dataset Class (filepath, savepath)
         getClass(index:int) => str
             returns the class of the video for data[index]
 
-        getPixelCrop(index:int) => list[slice(), slice()]
+        getPixelCrop(index:int) => tuple[slice, slice]
             returns slice object of pixel to crop video to. In format [heightStart:heightEnd, widthStart, widthEnd]
 
-        getClipTime(index:int) => (float, float)
+        getClipTime(index:int) => tuple[float, float]
             returns start and end time for clip
 
         isVideoDownloaded(index:int) => bool
             returns whether video is downloaded or not
 
         downloadVideo(index:int) => bool
-            downloads clip from video for data[index].
-            returns True if download completes, False if video cannot be downloaded
+            downloads clip from video for data[index]. returns True if download completes, False if video cannot be downloaded
         
         deleteVideo(index:int) => None
             deletes clip from downloads (mainly to not fill up storage)
 
-        getFrames(index:int) => numpy.array
-            returns an array of frames. Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and array of frames is returned
+        saveFrames(index:int, frames:np.ndarray) => None
+            save array of frames to file (to be used as input for AI model). Frames arrays are saved as bytes to save memory. Each frame is (height * width) bytes
 
-        saveFrames(index:int) => None
-            save array of frames to file (to be used as input for AI model)
+        loadFrames(index:int) => np.ndarray
+            load array of frames from file. Frames arrays are loaded from bytes. Each frame is (height * width) bytes
 
         deleteFrames(index:int) => None
             delete file of frames (usually not needed but to save storage I guess. These files shouldn't be too big though)
 
-        _showFrames(index:int) => None
-            show frames from file (only really used for visualizing data)
+        extractFrames(index:int) => bool
+            Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and added to array of frames from video. Frames are saved to file by call to saveFrames(). Returns array of frames. Raises exception if video is not downloaded

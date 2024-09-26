@@ -35,7 +35,7 @@ for i in range(12):
         with YoutubeDL(args) as ydl:
             ydl.download(data[i]["url"])
     except Exception as e:
-        print(e)
+        print(type(e))
         continue
 
     height = data[i]["height"]
