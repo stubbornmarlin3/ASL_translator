@@ -6,14 +6,14 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import download_range_func, DownloadError
 from json import loads
 import cv2
-import numpy as np
+import torch
 import os
 
 
 class Dataset:
     "Class to manipulate datasets"
 
-    def __init__(self, filePath:str, savePath:str, frameSize:tuple[int,int]=(256,256)) -> None:
+    def __init__(self, filePath:str, savePath:str, frameSize:tuple[int,int]=(224,224)) -> None:
 
         self.filePath = filePath
         self.savePath = savePath
@@ -95,36 +95,8 @@ class Dataset:
         else:
             print("Could not delete video: File does not exist.")
 
-    def saveFrames(self, index:int, frames:np.ndarray) -> None:
-        "save array of frames to file (to be used as input for AI model)"
 
-        if not os.path.exists(f"{self.savePath}/Frames"):
-            os.mkdir(f"{self.savePath}/Frames")
-
-        with open(f"{self.savePath}/Frames/{index}.exfr", "wb") as f:
-            for pixelValue in frames.flatten():
-                f.write(int(pixelValue).to_bytes())
-
-    def loadFrames(self, index:int) -> np.ndarray:
-        "load array of frames from file. Frames arrays are loaded from bytes. Each frame is (height * width) bytes"
-
-        with open(f"{self.savePath}/Frames/{index}.exfr", "rb") as f:
-            frames = []
-            # Using walrus operator to assign while testing condition. Create frame using list comprehension by reading in x number of bytes (equal to height * width of frame) which converts each byte to an int, then assigns it to frame while testing if frame can be constructed (ie there is bytes to be read in the file). 
-            while frame := [byte for byte in f.read(self.frameSize[0] * self.frameSize[1])]:
-                frames.append(frame)
-
-        return np.array(frames)
-
-    def deleteFrames(self, index:int) -> None:
-        "delete file of frames (usually not needed but to save storage I guess. These files shouldn't be too big though)"
-
-        if os.path.exists(f"{self.savePath}/Frames/{index}.exfr"):
-            os.remove(f"{self.savePath}/Frames/{index}.exfr")
-        else:
-            print("Could not delete frames: File does not exist.")
-
-    def extractFrames(self, index:int) -> np.ndarray:
+    def extractFrames(self, index:int) -> torch.Tensor:
         "Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and added to array of frames from video. Frames are saved to file by call to saveFrames(). Returns array of frames. Raises exception if video is not downloaded"
 
         if not self.isVideoDownloaded(index):
@@ -141,52 +113,29 @@ class Dataset:
 
             croppedFrame = frame[self.getPixelCrop(index)]
             resizedFrame = cv2.resize(croppedFrame, self.frameSize)
-            grayscaleFrame = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+            normFrame = resizedFrame / 255      # Normalize pixel values between 0 - 1
 
-            flattenedFrame = np.array([grayscaleFrame]).flatten()
-            frames.append(flattenedFrame)
+            frames.append(normFrame)
 
         cap.release()
 
-        return np.array(frames)
+        return torch.tensor(frames, dtype=torch.float32).permute(3,1,2,0)   # Move dimensions so that channels are first
 
 
 if __name__ == "__main__":
     training = Dataset("./MS-ASL/MSASL_train.json", "./Training")
 
-    print(training.getUrl(0))
-    print(training.getClass(0))
-
-    test = np.ones((500,500))
-
-    print(training.getPixelCrop(0))
-    print(test[training.getPixelCrop(0)].shape)
-
-    print(training.getClipTime(0))
-
-    # print(training.isVideoDownloaded(0))
-    # os.system("mkdir -p ./Training/Videos && touch ./Training/Videos/0.mp4")
-    # print(training.isVideoDownloaded(0))
-    # os.system("rm -rf ./Training")
-
     print(training.downloadVideo(0))
 
-    # training.deleteVideo(4)
-
-    training.deleteFrames(0)
     frame = training.extractFrames(0)
-    training.saveFrames(0,frame)
-    frame2 = training.loadFrames(0)
 
-    print(frame == frame2)
+    print(frame.shape)
+    frame = frame.permute(3,1,2,0)
 
-    for i in range(10):
-        training.downloadVideo(i)
-        try:
-            frame = training.extractFrames(i)
-        except:
-            continue
-        training.saveFrames(i,frame)
+    model = torch.nn.Sequential(
+        torch.nn.Conv3d(3, 16, 7, 2)
+    )
 
+    print(frame)
 
-    
+    model(frame)

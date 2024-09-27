@@ -44,3 +44,11 @@ Dataset Class (filePath, savePath)
 
         extractFrames(index:int) => bool
             Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and added to array of frames from video. Frames are saved to file by call to saveFrames(). Returns array of frames. Raises exception if video is not downloaded
+
+I3D Class
+
+    Attributes:
+
+    Methods:
+
+        
