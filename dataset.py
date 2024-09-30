@@ -113,13 +113,14 @@ class Dataset:
 
             croppedFrame = frame[self.getPixelCrop(index)]
             resizedFrame = cv2.resize(croppedFrame, self.frameSize)
-            normFrame = resizedFrame / 255      # Normalize pixel values between 0 - 1
+            grayscaleFrame = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+            normFrame = grayscaleFrame / 255      # Normalize pixel values between 0 - 1
 
             frames.append(normFrame)
 
         cap.release()
 
-        return torch.tensor(frames, dtype=torch.float32).permute(3,1,2,0)   # Move dimensions so that channels are first
+        return torch.tensor(frames, dtype=torch.float32)
 
 
 if __name__ == "__main__":
@@ -130,10 +131,9 @@ if __name__ == "__main__":
     frame = training.extractFrames(0)
 
     print(frame.shape)
-    frame = frame.permute(3,1,2,0)
-
+    
     model = torch.nn.Sequential(
-        torch.nn.Conv3d(3, 16, 7, 2)
+        torch.nn.Conv2d(84, 84, 7, 2)
     )
 
     print(frame)
