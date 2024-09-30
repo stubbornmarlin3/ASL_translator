@@ -48,7 +48,16 @@ Dataset Class (filePath, savePath)
 I3D Class
 
     Attributes:
+        
+
+
+
+
 
     Methods:
 
-        
+        forward(input:torch.Tensor) => torch.Tensor
+            forward pass of the I3D CNN model, input is tensor of number of frames
+
+        inceptionModule(input:torch.Tensor) => torch.Tensor
+            inception module for Inception-V1
