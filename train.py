@@ -35,7 +35,10 @@ def main():
             if not train.downloadVideo(i):
                 continue
 
-            input = train.extractFrames(i)[:,:64,:,:].to(dev)
+            try:
+                input = train.extractFrames(i)[:,:64,:,:].to(dev)
+            except RuntimeError:    # For if frames cannot be extracted ie corrupt video
+                continue
             label = train.getLabel(i).to(dev)
 
             # Extend frames if less than 64

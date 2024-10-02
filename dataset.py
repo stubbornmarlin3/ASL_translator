@@ -147,3 +147,5 @@ class Dataset:
 if __name__ == "__main__":
     training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
 
+    training.downloadVideo(1729)
+    print(training.extractFrames(1729).shape)
