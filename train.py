@@ -6,7 +6,7 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
-dev = torch.device("cpu")
+dev = torch.device("cuda")
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
@@ -27,8 +27,8 @@ def main():
         avg_loss = 0.0
 
         # Train
-        for i in range(50):
-            print(f"Progress: {(i/50)*100:.3f}%", end="\r", flush=True)
+        for i in range(train.num_samples):
+            print(f"Progress: {(i/train.num_samples)*100:.3f}%", end="\r", flush=True)
 
             # Get input and class
 
@@ -60,7 +60,7 @@ def main():
             # Summing losses
             avg_loss += loss.item()
 
-        avg_loss /= 50
+        avg_loss /= train.num_samples
         print(f"\nTraining average loss: {avg_loss}")
 
 
