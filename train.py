@@ -6,9 +6,11 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
+#Test
+
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
-    model = I3D()
+    model = I3D().to(torch.device("cuda"))
 
     optim = torch.optim.SGD(model.parameters(), lr=0.4)
 
@@ -33,8 +35,8 @@ def main():
             if not train.downloadVideo(i):
                 continue
 
-            input = train.extractFrames(i)[:,:64,:,:]
-            label = train.getLabel(i)
+            input = train.extractFrames(i)[:,:64,:,:].to(torch.device("cuda"))
+            label = train.getLabel(i).to(torch.device("cuda"))
 
             # Extend frames if less than 64
             if input.shape[1] < 64:
