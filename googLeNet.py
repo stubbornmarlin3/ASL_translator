@@ -8,7 +8,7 @@ class GoogLeNetCNN(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-        self.batch_size = 20
+        self.batch_size = 1
 
         self.relu = torch.nn.ReLU()
 

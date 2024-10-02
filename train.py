@@ -32,7 +32,7 @@ def main():
             if not train.downloadVideo(i):
                 continue
 
-            input = train.extractFrames(i)[:20].to(torch.device("mps"))
+            input = train.extractFrames(i).to(torch.device("mps"))
             label = train.getLabel(i).to(torch.device("mps"))
 
             # Empty gradients

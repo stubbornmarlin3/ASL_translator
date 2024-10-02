@@ -128,14 +128,3 @@ if __name__ == "__main__":
     print(training.downloadVideo(0))
 
     frame = training.extractFrames(0)
-
-    print(frame.shape)
-    frame = frame.permute(3,1,2,0)
-
-    model = torch.nn.Sequential(
-        torch.nn.Conv3d(3, 16, 7, 2)
-    )
-
-    print(frame)
-
-    model(frame)
