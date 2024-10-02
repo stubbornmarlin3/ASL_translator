@@ -7,15 +7,24 @@ from yt_dlp.utils import download_range_func, DownloadError
 from json import loads
 import cv2
 import torch
+import numpy as np
 import os
 
 
+class loggerOutputs:
+    def error(msg):
+        pass
+    def warning(msg):
+        pass
+    def debug(msg):
+        pass
 class Dataset:
     "Class to manipulate datasets"
 
-    def __init__(self, filePath:str, savePath:str, frameSize:tuple[int,int]=(224,224)) -> None:
+    def __init__(self, filePath:str, labelPath:str, savePath:str, frameSize:tuple[int,int]=(224,224)) -> None:
 
         self.filePath = filePath
+        self.labelPath = labelPath
         self.savePath = savePath
         self.frameSize = frameSize
 
@@ -23,16 +32,26 @@ class Dataset:
             data = f.read()
 
         self.data:list[dict] = loads(data)
+
+        with open(self.labelPath) as f:
+            labels = f.read()
+        
+        self.labels:list = loads(labels)
+        self.num_samples:int = len(self.data)
+
+        self.skip:list = []
         
     def getUrl(self, index:int) -> str:
         "returns the url of the video for data[index]"
 
         return self.data[index]["url"]
     
-    def getClass(self, index:int) -> str:
-        "returns the class of the video for data[index]"
+    def getLabel(self, index:int) -> torch.Tensor:
+        "returns the label of the video for data[index] as a one-hot vector"
 
-        return self.data[index]["clean_text"]
+        result = torch.zeros(len(self.labels))
+        result[self.data[index]["label"]] = 1
+        return result
 
     def getPixelCrop(self, index:int) -> tuple[slice, slice]:
         "returns slice object of pixel to crop video to. In format [heightStart:heightEnd, widthStart, widthEnd]"
@@ -65,8 +84,10 @@ class Dataset:
     def downloadVideo(self, index:int) -> bool:
         "downloads clip from video for data[index]. returns True if download completes, False if video cannot be downloaded"
 
+        if index in self.skip:
+            return False
+
         if self.isVideoDownloaded(index):
-            print("Video Already Downloaded!")
             return True
 
         args = {
@@ -76,13 +97,14 @@ class Dataset:
             "outtmpl" : f"{self.savePath}/Videos/{index}.%(ext)s",
             "quiet" : True,
             "no_warnings" : True,
+            "logger" : loggerOutputs,
         }
 
         try:
             with YoutubeDL(args) as ydl:
                 ydl.download(self.getUrl(index))
         except DownloadError:
-            print("Cannot Download Video!")
+            self.skip.append(index)
             return False
         
         return True
@@ -119,12 +141,9 @@ class Dataset:
 
         cap.release()
 
-        return torch.tensor(frames, dtype=torch.float32).permute(3,1,2,0)   # Move dimensions so that channels are first
+        return torch.tensor(np.array(frames), dtype=torch.float32).permute(3,0,1,2)
 
 
 if __name__ == "__main__":
-    training = Dataset("./MS-ASL/MSASL_train.json", "./Training")
+    training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
 
-    print(training.downloadVideo(0))
-
-    frame = training.extractFrames(0)

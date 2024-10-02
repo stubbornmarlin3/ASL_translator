@@ -3,12 +3,12 @@
 # ASL Interpreter
 
 from dataset import Dataset
-from googLeNet import GoogLeNetCNN
+from i3d import I3D
 import torch
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
-    model = GoogLeNetCNN().to(torch.device("mps"))
+    model = I3D()
 
     optim = torch.optim.SGD(model.parameters(), lr=0.4)
 
@@ -26,14 +26,19 @@ def main():
 
         # Train
         for i in range(40):
+            print(f"{i}.", end="", flush=True)
 
             # Get input and class
 
             if not train.downloadVideo(i):
                 continue
 
-            input = train.extractFrames(i).to(torch.device("mps"))
-            label = train.getLabel(i).to(torch.device("mps"))
+            input = train.extractFrames(i)[:,:64,:,:]
+            label = train.getLabel(i)
+
+            # Extend frames if less than 64
+            if input.shape[1] < 64:
+                input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64 - input.size(1)),1,1)), 1)
 
             # Empty gradients
             optim.zero_grad()
@@ -53,6 +58,8 @@ def main():
             # Summing losses
             avg_loss += loss.item()
 
+            print(":", end="")
+
         avg_loss /= 40
         print(f"Training average loss: {avg_loss}")
 
@@ -61,3 +68,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

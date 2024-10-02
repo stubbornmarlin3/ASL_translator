@@ -149,19 +149,19 @@ class I3D(torch.nn.Module):
     def Inception(self, input:torch.Tensor, func:torch.nn.ModuleList) -> torch.Tensor:
 
         convInc0 = self.relu(func[0](input))
-        print(convInc0.shape)
+        
 
         convInc1a = func[1](input)
         convInc1b = self.relu(func[2](convInc1a))
-        print(convInc1b.shape)
+        
 
         convInc2a = func[3](input)
         convInc2b = self.relu(func[4](convInc2a))
-        print(convInc2b.shape)
+        
 
         poolInc = func[5](input)
         convIncPool = self.relu(func[6](poolInc))
-        print(convIncPool.shape)
+        
 
         return torch.cat((convInc0, convInc1b, convInc2b, convIncPool), 0)
 
@@ -170,59 +170,59 @@ class I3D(torch.nn.Module):
         
 
         conv0 = self.relu(self.conv0(input))
-        print(conv0.shape)
+        
 
         pool0 = self.maxpool0(conv0)
-        print(pool0.shape)
+        
 
         conv1a = self.conv1a(pool0)
         conv1b = self.relu(self.conv1b(conv1a))
-        print(conv1b.shape)
+        
 
         pool1 = self.maxpool0(conv1b)
-        print(pool1.shape)
+        
     
         inc0 = self.Inception(pool1, self.IncA)
-        print(inc0.shape)
+        
 
         inc1 = self.Inception(inc0, self.IncB)
-        print(inc1.shape)
+        
 
         pool2 = self.maxpool1(inc1)
-        print(pool2.shape)
+        
 
         inc2 = self.Inception(pool2, self.IncC)
-        print(inc2.shape)
+        
 
         inc3 = self.Inception(inc2, self.IncD)
-        print(inc3.shape)
+        
 
         inc4 = self.Inception(inc3, self.IncE)
-        print(inc4.shape)
+        
 
         inc5 = self.Inception(inc4, self.IncF)
-        print(inc5.shape)
+        
 
         inc6 = self.Inception(inc5, self.IncG)
-        print(inc6.shape)
+        
 
         pool3 = self.maxpool2(inc6)
-        print(pool3.shape)
+        
 
         inc7 = self.Inception(pool3, self.IncH)
-        print(inc7.shape)
+        
 
         inc8 = self.Inception(inc7, self.IncI)
-        print(inc8.shape)
+        
 
         pool4 = self.avgpool(inc8)
-        print(pool4.shape)
+        
 
         linear = self.relu(self.linear(pool4.flatten()))
-        print(linear.shape)
+        
 
         softmax = self.softmax(linear)
-        print(softmax.shape)
+        
 
         return softmax
 
