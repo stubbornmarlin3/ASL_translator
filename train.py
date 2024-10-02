@@ -12,9 +12,9 @@ def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     model = I3D().to(torch.device("cuda"))
 
-    optim = torch.optim.SGD(model.parameters(), lr=0.4)
+    optim = torch.optim.SGD(model.parameters(), lr=0.4, momentum=0.9)
 
-    num_epochs = 4
+    num_epochs = 10
 
     losses = []
     validations = []
@@ -27,8 +27,8 @@ def main():
         avg_loss = 0.0
 
         # Train
-        for i in range(40):
-            print(f"{i}.", end="", flush=True)
+        for i in range(train.num_samples):
+            print(f"{i/train.num_samples:.2f}%", end="\r", flush=True)
 
             # Get input and class
 
@@ -59,8 +59,6 @@ def main():
 
             # Summing losses
             avg_loss += loss.item()
-
-            print(":", end="")
 
         avg_loss /= 40
         print(f"Training average loss: {avg_loss}")
