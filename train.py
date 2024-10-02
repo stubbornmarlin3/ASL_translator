@@ -6,7 +6,7 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
-dev = torch.device("cuda")
+dev = torch.device("cpu")
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
@@ -28,7 +28,7 @@ def main():
 
         # Train
         for i in range(train.num_samples):
-            print(f"Progress: {(i/train.num_samples)*100:.3f}%", end="\r", flush=True)
+            print(f"\rProgress: {(i/train.num_samples)*100:.3f}%  |  Index: {i}", end="", flush=True)
 
             # Get input and class
 
