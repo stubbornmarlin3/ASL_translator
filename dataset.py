@@ -96,6 +96,7 @@ class Dataset:
             "download_ranges" : download_range_func(None, [self.getClipTime(index)]),
             "force_keyframes_at_cuts" : True,
             "outtmpl" : f"{self.savePath}/Videos/{index}.%(ext)s",
+            "quiet" : True,
             "logger" : loggerOutputs,
         }
 
