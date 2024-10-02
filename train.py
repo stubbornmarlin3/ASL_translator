@@ -28,7 +28,7 @@ def main():
 
         # Train
         for i in range(train.num_samples):
-            print(f"{i/train.num_samples:.2f}%", end="\r", flush=True)
+            print(f"Progress: {(i/train.num_samples)*100:.3f}%", end="\r", flush=True)
 
             # Get input and class
 
@@ -61,7 +61,7 @@ def main():
             avg_loss += loss.item()
 
         avg_loss /= 40
-        print(f"Training average loss: {avg_loss}")
+        print(f"\nTraining average loss: {avg_loss}")
 
 
 
