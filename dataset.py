@@ -116,7 +116,7 @@ class Dataset:
             resize = (
                 video
                 .filter('scale', int(self.data[index]["width"]), int(self.data[index]["height"]))
-                .output(f"{self.savePath}/Videos/{index}.mp4")
+                .output(f"{self.savePath}/Videos/{index}.mp4", loglevel="quiet")
                 .overwrite_output()
                 .run()
             )
@@ -215,6 +215,6 @@ class Dataset:
 if __name__ == "__main__":
     training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
 
-    training.downloadVideo(4323)
+    training.downloadVideo(4324)
     print(training.extractFrames(4323).shape)
     
