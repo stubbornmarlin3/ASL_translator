@@ -6,11 +6,11 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
-#Test
+dev = torch.device("cpu")
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
-    model = I3D().to(torch.device("cuda"))
+    model = I3D().to(dev)
 
     optim = torch.optim.SGD(model.parameters(), lr=0.4, momentum=0.9)
 
@@ -27,16 +27,16 @@ def main():
         avg_loss = 0.0
 
         # Train
-        for i in range(train.num_samples):
-            print(f"Progress: {(i/train.num_samples)*100:.3f}%", end="\r", flush=True)
+        for i in range(50):
+            print(f"Progress: {(i/50)*100:.3f}%", end="\r", flush=True)
 
             # Get input and class
 
             if not train.downloadVideo(i):
                 continue
 
-            input = train.extractFrames(i)[:,:64,:,:].to(torch.device("cuda"))
-            label = train.getLabel(i).to(torch.device("cuda"))
+            input = train.extractFrames(i)[:,:64,:,:].to(dev)
+            label = train.getLabel(i).to(dev)
 
             # Extend frames if less than 64
             if input.shape[1] < 64:
@@ -60,7 +60,7 @@ def main():
             # Summing losses
             avg_loss += loss.item()
 
-        avg_loss /= 40
+        avg_loss /= 50
         print(f"\nTraining average loss: {avg_loss}")
 
 
