@@ -13,11 +13,11 @@ import os
 
 class loggerOutputs:
     def error(msg):
-        print(msg)
+        pass
     def warning(msg):
-        print(msg)
+        pass
     def debug(msg):
-        print(msg)
+        pass
 
 class Dataset:
     "Class to manipulate datasets"
