@@ -9,14 +9,18 @@ import cv2
 import torch
 import numpy as np
 import os
+import ffmpeg
 
 
 class loggerOutputs:
     def error(msg):
+        print(msg)
         pass
     def warning(msg):
+        print(msg)
         pass
     def debug(msg):
+        print(msg)
         pass
 
 class Dataset:
@@ -92,7 +96,7 @@ class Dataset:
             return True
 
         args = {
-            "format" : "mp4/best",
+            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
             "download_ranges" : download_range_func(None, [self.getClipTime(index)]),
             "force_keyframes_at_cuts" : True,
             "outtmpl" : f"{self.savePath}/Videos/{index}.%(ext)s",
@@ -107,6 +111,20 @@ class Dataset:
             self.skip.append(index)
             return False
         
+        # Resize video if not correct resolution
+
+        if ffmpeg.probe(f"{self.savePath}/Videos/{index}.mp4")["streams"][0]["height"] != self.data[index]["height"]:
+            os.rename(f"{self.savePath}/Videos/{index}.mp4", f"{self.savePath}/Videos/{index}_old.mp4")
+            video = ffmpeg.input(f"{self.savePath}/Videos/{index}_old.mp4")
+            resize = (
+                video
+                .filter('scale', int(self.data[index]["width"]), int(self.data[index]["height"]))
+                .output(f"{self.savePath}/Videos/{index}.mp4")
+                .overwrite_output()
+                .run()
+            )
+            os.remove(f"{self.savePath}/Videos/{index}_old.mp4")
+        
         return True
 
     def deleteVideo(self, index:int) -> bool:
@@ -119,7 +137,7 @@ class Dataset:
 
 
     def extractFrames(self, index:int) -> torch.Tensor:
-        "Each frame is cropped, converted to grayscale, and resized to _resizeTo. Pixel values are from 0-255 (not normalized to save disk space so remember to normalize for use in model). Frame is flattened and added to array of frames from video. Frames are saved to file by call to saveFrames(). Returns array of frames. Raises exception if video is not downloaded"
+        "Each frame is cropped and resized to self.frameSize. Pixel values are normalized. Returns array of frames [channels, depth(frames), height, width]. Raises exception if video is not downloaded"
 
         if not self.isVideoDownloaded(index):
             raise Exception("Video Not Downloaded!")
@@ -132,7 +150,7 @@ class Dataset:
 
             if not ret:
                 break
-
+            
             croppedFrame = frame[self.getPixelCrop(index)]
             resizedFrame = cv2.resize(croppedFrame, self.frameSize)
             normFrame = resizedFrame / 255      # Normalize pixel values between 0 - 1
@@ -142,10 +160,64 @@ class Dataset:
         cap.release()
 
         return torch.tensor(np.array(frames), dtype=torch.float32).permute(3,0,1,2)
+    
+    def extractFlow(self, index:int) -> torch.Tensor:
+        "Each frame is cropped, converted to grayscale, and resized to self.frameSize. Dense optical flow is calculated. Returns array of optical flow frames [channels, depth(frames), height, width]. Raises exception if video is not downloaded"
+
+        if not self.isVideoDownloaded(index):
+            raise Exception("Video Not Downloaded!")
+        
+        cap = cv2.VideoCapture(f"{self.savePath}/Videos/{index}.mp4")
+
+        ret, init_frame = cap.read()
+        
+        croppedFrame = init_frame[self.getPixelCrop(index)]
+        resizedFrame = cv2.resize(croppedFrame, self.frameSize)
+        prev_gray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(resizedFrame)
+        mask[..., 1] = 255
+
+        frames = []
+
+        while True:
+            ret, frame = cap.read()
+
+            if not ret:
+                break
+
+            croppedFrame = frame[self.getPixelCrop(index)]
+            resizedFrame = cv2.resize(croppedFrame, self.frameSize)
+            next_gray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+
+            flow = cv2.calcOpticalFlowFarneback(
+                prev_gray, 
+                next_gray, 
+                flow=None, 
+                pyr_scale=0.5,
+                levels=3,
+                winsize=15,
+                iterations=3,
+                poly_n=5,
+                poly_sigma=1.2,
+                flags=0
+                )
+            
+            magnitude, angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+            mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+
+            coloredFlow = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+            normFlow = coloredFlow / 255
+
+            frames.append(normFlow)
+
+        cap.release()
+        return torch.tensor(np.array(frames), dtype=torch.float32).permute(3,0,1,2)
 
 
 if __name__ == "__main__":
     training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
 
-    training.downloadVideo(1729)
-    print(training.extractFrames(1729).shape)
+    training.downloadVideo(4323)
+    print(training.extractFrames(4323).shape)
+    

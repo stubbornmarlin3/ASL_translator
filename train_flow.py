@@ -12,7 +12,7 @@ def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     model = I3D().to(dev)
 
-    optim = torch.optim.SGD(model.parameters(), lr=0.4, momentum=0.9)
+    optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     num_epochs = 10
 
@@ -36,7 +36,7 @@ def main():
                 continue
 
             try:
-                input = train.extractFrames(i)[:,:64,:,:].to(dev)
+                input = train.extractFlow(i)[:,:64,:,:].to(dev)
             except RuntimeError:    # For if frames cannot be extracted ie corrupt video
                 continue
             label = train.getLabel(i).to(dev)
