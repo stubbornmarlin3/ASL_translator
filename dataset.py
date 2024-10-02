@@ -14,13 +14,10 @@ import ffmpeg
 
 class loggerOutputs:
     def error(msg):
-        print(msg)
         pass
     def warning(msg):
-        print(msg)
         pass
     def debug(msg):
-        print(msg)
         pass
 
 class Dataset:
