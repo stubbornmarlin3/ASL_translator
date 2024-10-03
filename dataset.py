@@ -203,7 +203,7 @@ class Dataset:
                 flags=0
                 )
             
-            magnitude, angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+            magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
             mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
 
             coloredFlow = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
