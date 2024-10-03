@@ -6,7 +6,7 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
-dev = torch.device("cpu")
+dev = torch.device("cuda")
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")

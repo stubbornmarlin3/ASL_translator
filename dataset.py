@@ -109,18 +109,21 @@ class Dataset:
             return False
         
         # Resize video if not correct resolution
-
-        if ffmpeg.probe(f"{self.savePath}/Videos/{index}.mp4")["streams"][0]["height"] != self.data[index]["height"]:
-            os.rename(f"{self.savePath}/Videos/{index}.mp4", f"{self.savePath}/Videos/{index}_old.mp4")
-            video = ffmpeg.input(f"{self.savePath}/Videos/{index}_old.mp4")
-            resize = (
-                video
-                .filter('scale', int(self.data[index]["width"]), int(self.data[index]["height"]))
-                .output(f"{self.savePath}/Videos/{index}.mp4", loglevel="quiet")
-                .overwrite_output()
-                .run()
-            )
-            os.remove(f"{self.savePath}/Videos/{index}_old.mp4")
+        try:
+            if ffmpeg.probe(f"{self.savePath}/Videos/{index}.mp4")["streams"][0]["height"] != self.data[index]["height"]:
+                os.rename(f"{self.savePath}/Videos/{index}.mp4", f"{self.savePath}/Videos/{index}_old.mp4")
+                video = ffmpeg.input(f"{self.savePath}/Videos/{index}_old.mp4")
+                resize = (
+                    video
+                    .filter('scale', int(self.data[index]["width"]), int(self.data[index]["height"]))
+                    .output(f"{self.savePath}/Videos/{index}.mp4", loglevel="quiet")
+                    .overwrite_output()
+                    .run()
+                )
+                os.remove(f"{self.savePath}/Videos/{index}_old.mp4")
+        except KeyError:    # For corrupt videos
+            self.skip.append(index)
+            return False
         
         return True
 
@@ -215,6 +218,5 @@ class Dataset:
 if __name__ == "__main__":
     training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
 
-    training.downloadVideo(4324)
-    print(training.extractFrames(4323).shape)
+    training.downloadVideo(1526)
     
