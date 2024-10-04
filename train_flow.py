@@ -99,7 +99,7 @@ def main():
 
         if valid_acc > best_acc or epoch == 0:
             best_acc = valid_acc
-            torch.save(model.state_dict(), "./I3D_RGB_model.dat")
+            torch.save(model.state_dict(), "./I3D_Flow_model.dat")
 
 
 if __name__ == "__main__":
