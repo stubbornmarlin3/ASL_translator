@@ -27,7 +27,7 @@ class I3D(torch.nn.Module):
 
         self.avgpool = torch.nn.AvgPool3d(kernel_size=7)
 
-        self.fc1 = torch.nn.Linear(1024, 1000)
+        self.linear = torch.nn.Linear(1024, 1000)
 
         self.softmax = torch.nn.Softmax(dim=0)
 

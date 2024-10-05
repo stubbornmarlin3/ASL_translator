@@ -18,7 +18,7 @@ def main():
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     num_epochs = 100
-    batch_size = 5
+    batch_size = 7
 
     best_acc = 0.0
 
