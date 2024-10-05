@@ -8,10 +8,6 @@ class I3D(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-        self.batch_size = 1
-
-        self.relu = torch.nn.ReLU()
-
         self.conv0 = torch.nn.Conv3d(3, 64, kernel_size=7, stride=2, padding=3)
 
         self.maxpool0 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
@@ -25,7 +21,7 @@ class I3D(torch.nn.Module):
 
         self.avgpool = torch.nn.AvgPool3d(kernel_size=7)
 
-        self.linear = torch.nn.Linear(1024 * self.batch_size , 1000)
+        self.linear = torch.nn.Linear(1024, 1000)
 
         self.softmax = torch.nn.Softmax(dim=0)
 
@@ -147,20 +143,20 @@ class I3D(torch.nn.Module):
         ])
 
     def Inception(self, input:torch.Tensor, func:torch.nn.ModuleList) -> torch.Tensor:
-        convInc0 = self.relu(func[0](input))
-        convInc1a = func[1](input)
-        convInc1b = self.relu(func[2](convInc1a))
-        convInc2a = func[3](input)
-        convInc2b = self.relu(func[4](convInc2a))
+        convInc0 = torch.nn.functional.relu(func[0](input))
+        convInc1a = torch.nn.functional.relu(func[1](input))
+        convInc1b = torch.nn.functional.relu(func[2](convInc1a))
+        convInc2a = torch.nn.functional.relu(func[3](input))
+        convInc2b = torch.nn.functional.relu(func[4](convInc2a))
         poolInc = func[5](input)
-        convIncPool = self.relu(func[6](poolInc))
-        return torch.cat((convInc0, convInc1b, convInc2b, convIncPool), 0)
+        convIncPool = torch.nn.functional.relu(func[6](poolInc))
+        return torch.cat((convInc0, convInc1b, convInc2b, convIncPool), 1)
 
     def forward(self, input:torch.Tensor) -> torch.Tensor:
-        conv0 = self.relu(self.conv0(input))
+        conv0 = torch.nn.functional.relu(self.conv0(input))
         pool0 = self.maxpool0(conv0)
         conv1a = self.conv1a(pool0)
-        conv1b = self.relu(self.conv1b(conv1a))
+        conv1b = torch.nn.functional.relu(self.conv1b(conv1a))
         pool1 = self.maxpool0(conv1b)
         inc0 = self.Inception(pool1, self.IncA)
         inc1 = self.Inception(inc0, self.IncB)
@@ -174,7 +170,7 @@ class I3D(torch.nn.Module):
         inc7 = self.Inception(pool3, self.IncH)
         inc8 = self.Inception(inc7, self.IncI)
         pool4 = self.avgpool(inc8)
-        linear = self.relu(self.linear(pool4.flatten()))
+        linear = torch.nn.functional.relu(self.linear(pool4.flatten(1)))
         softmax = self.softmax(linear)
         return softmax
 
@@ -182,7 +178,7 @@ class I3D(torch.nn.Module):
 if __name__ == "__main__":
     model = I3D()
 
-    test = torch.rand((3,64,224,224), dtype=torch.float32)
+    test = torch.rand((2,3,64,224,224), dtype=torch.float32)
     
     model(test)
 

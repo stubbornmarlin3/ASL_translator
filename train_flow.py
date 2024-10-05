@@ -78,7 +78,7 @@ def main():
                     continue
 
                 try:
-                    input = valid.extractFrames(i)[:,:64,:,:].to(dev)
+                    input = valid.extractFlow(i)[:,:64,:,:].to(dev)
                 except RuntimeError:    # For if frames cannot be extracted ie corrupt video
                     continue
                 label = valid.getLabel(i).to(dev)
