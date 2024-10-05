@@ -20,61 +20,65 @@ def main():
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     num_epochs = 100
-    batch_size = 20
-
-    train_iter = train.num_samples // batch_size
-    valid_iter = valid.num_samples // batch_size
+    batch_size = 5
 
     best_acc = 0.0
 
     for epoch in range(num_epochs):
-        print(f"=== === === === === Epoch {epoch} === === === === ===")
+        print(f"=== === === === === === === Epoch {epoch} === === === === === === ===")
 
         avg_loss = 0.0
 
+        i = -1
+        batch_count = 0
         # Train
-        for i in range(train_iter):
-            print(f"\rTraining: {((i)/train_iter)*100:.3f}%  |  Batch: [{i*batch_size}:{((i+1)*batch_size)-1}] / {train.num_samples}", end="", flush=True)
-
+        while i < (train.num_samples-1):
+            batch_count+=1
             # Get input and class
 
-            if not train.downloadVideo(i):
-                continue
+            batch_input = []
+            batch_labels = []
 
-            j = i*batch_size
-            while j < ((i+1)*batch_size):
-                
-                if not train.downloadVideo(j):
+            j = batch_size
+            while j > 0 and i < (train.num_samples-1):
+                i+=1
+
+                print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {train.num_samples}", end="", flush=True)
+
+                if not train.downloadVideo(i):
                     continue
                 
                 try:
-                    input = train.extractFrames(j)[:,:64,:,:].to(dev)
+                    input = train.extractFrames(i)[:,:64,:,:].to(dev)
                 except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
-                    train.skip.append(j)
+                    train.skip.append(i)
                     continue
 
+                # Extend video if less than 64 frames
+                if input.size(1) < 64:
+                    input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
                 
+                batch_input.append(input)
 
-
-            try:
-                input = train.extractFrames(i)[:,:64,:,:].to(dev)
-            except RuntimeError:    # For if frames cannot be extracted ie corrupt video
-                train.skip.append(i)
+                labels = train.getLabel(j).to(dev)
+                batch_labels.append(labels)
+                
+                j-=1
+            
+            if len(batch_input) == 0:
                 continue
-            label = train.getLabel(i).to(dev)
 
-            # Extend frames if less than 64
-            if input.shape[1] < 64:
-                input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64 - input.size(1)),1,1)), 1)
+            batch_input = torch.from_numpy(np.array(batch_input, np.float32))
+            batch_labels = torch.from_numpy(np.array(batch_labels, np.float32))
 
             # Empty gradients
             optim.zero_grad()
 
             # Forward pass
-            predict = model(input)
+            predict = model(batch_input)
 
             # Loss
-            loss = torch.nn.functional.cross_entropy(predict, label, reduction="mean")
+            loss = torch.nn.functional.cross_entropy(predict, batch_labels, reduction="mean")
 
             # Backward pass
             loss.backward()
@@ -85,7 +89,7 @@ def main():
             # Summing losses
             avg_loss += loss.item()
 
-        avg_loss /= train_iter
+        avg_loss /= batch_count
         print(f"\nTraining average loss: {avg_loss}")
 
         # Evaluations on validation set
@@ -93,29 +97,55 @@ def main():
         all_predict = []
         all_truth = []
 
+        i = -1
+        batch_count = 0
+
         with torch.no_grad():
-            for i in range(valid_iter):
-                print(f"\rValidating: {((i+1)/train_iter)*100:.3f}%  |  Batch: [{i}:{i+batch_size-1}] / {train.num_samples}", end="", flush=True)
+            while i < (valid.num_samples-1):
+                batch_count+=1
+                # Get input and class
 
-                if not valid.downloadVideo(i):
+                batch_input = []
+                batch_labels = []
+
+                j = batch_size
+                while j > 0 and i < (valid.num_samples-1):
+                    i+=1
+
+                    print(f"\rValidation: {((i+1)/valid.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {valid.num_samples}", end="", flush=True)
+
+                    if not valid.downloadVideo(i):
+                        continue
+                    
+                    try:
+                        input = valid.extractFrames(i)[:,:64,:,:].to(dev)
+                    except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
+                        valid.skip.append(i)
+                        continue
+
+                    # Extend video if less than 64 frames
+                    if input.size(1) < 64:
+                        input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
+                    
+                    batch_input.append(input)
+
+                    labels = valid.getLabel(j).to(dev)
+                    batch_labels.append(labels)
+                    
+                    j-=1
+
+                if len(batch_input) == 0:
                     continue
+                
+                batch_input = torch.from_numpy(np.array(batch_input, dtype=np.float32))
+                batch_labels = torch.from_numpy(np.array(batch_labels, dtype=np.float32))
 
-                try:
-                    input = valid.extractFrames(i)[:,:64,:,:].to(dev)
-                except RuntimeError:    # For if frames cannot be extracted ie corrupt video
-                    continue
-                label = valid.getLabel(i).to(dev)
+                predict = model(batch_input)
+                all_predict.append(torch.argmax(predict, dim=1))
+                all_truth.append(torch.argmax(batch_labels, dim=1))
 
-                # Extend frames if less than 64
-                if input.shape[1] < 64:
-                    input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64 - input.size(1)),1,1)), 1)
-
-                predict = model(input)
-                all_predict.append(torch.argmax(predict))
-                all_truth.append(torch.argmax(label))
-
-        all_predict = torch.stack(all_predict)
-        all_truth = torch.stack(all_truth)
+        all_predict = torch.cat(all_predict)
+        all_truth = torch.cat(all_truth)
 
         assert len(all_predict) == len(all_truth)
 
