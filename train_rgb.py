@@ -18,7 +18,7 @@ def main():
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     num_epochs = 100
-    batch_size = 20
+    batch_size = 5
 
     best_acc = 0.0
 
@@ -47,7 +47,7 @@ def main():
                     continue
                 
                 try:
-                    input = train.extractFrames(i)[:,:64,:,:].to(dev)
+                    input = train.extractFrames(i)[:,:64,:,:]
                 except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
                     train.skip.append(i)
                     continue
@@ -58,7 +58,7 @@ def main():
                 
                 batch_input.append(input)
 
-                labels = train.getLabel(j).to(dev)
+                labels = train.getLabel(j)
                 batch_labels.append(labels)
                 
                 j-=1
@@ -116,7 +116,7 @@ def main():
                         continue
                     
                     try:
-                        input = valid.extractFrames(i)[:,:64,:,:].to(dev)
+                        input = valid.extractFrames(i)[:,:64,:,:]
                     except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
                         valid.skip.append(i)
                         continue
@@ -127,7 +127,7 @@ def main():
                     
                     batch_input.append(input)
 
-                    labels = valid.getLabel(j).to(dev)
+                    labels = valid.getLabel(j)
                     batch_labels.append(labels)
                     
                     j-=1
