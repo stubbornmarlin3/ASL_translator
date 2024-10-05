@@ -9,7 +9,7 @@ import torch
 import numpy as np
 import cv2
 
-dev = torch.device("cpu")
+dev = torch.device("cuda")
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
@@ -20,7 +20,7 @@ def main():
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     num_epochs = 100
-    batch_size = 5
+    batch_size = 20
 
     best_acc = 0.0
 
@@ -68,8 +68,8 @@ def main():
             if len(batch_input) == 0:
                 continue
 
-            batch_input = torch.from_numpy(np.array(batch_input, np.float32))
-            batch_labels = torch.from_numpy(np.array(batch_labels, np.float32))
+            batch_input = torch.stack(batch_input).to(dev)
+            batch_labels = torch.stack(batch_labels).to(dev)
 
             # Empty gradients
             optim.zero_grad()
@@ -137,8 +137,8 @@ def main():
                 if len(batch_input) == 0:
                     continue
                 
-                batch_input = torch.from_numpy(np.array(batch_input, dtype=np.float32))
-                batch_labels = torch.from_numpy(np.array(batch_labels, dtype=np.float32))
+                batch_input = torch.stack(batch_input).to(dev)
+                batch_labels = torch.stack(batch_labels).to(dev)
 
                 predict = model(batch_input)
                 all_predict.append(torch.argmax(predict, dim=1))
