@@ -6,7 +6,12 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
-dev = torch.device("cuda")
+if torch.cuda.is_available():
+    dev = torch.device("cuda")
+else:
+    dev = torch.device("cpu")
+
+
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
@@ -14,44 +19,74 @@ def main():
 
     model = I3D().to(dev)
 
-    optim = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+    optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     num_epochs = 100
+    batch_size = 7
+
+    # Should be 100, 200, 500, or 1000
+    subset = 100
 
     best_acc = 0.0
 
     for epoch in range(num_epochs):
-        print(f"=== === === === === Epoch {epoch} === === === === ===")
+        print(f"=== === === === === === === Epoch {epoch} === === === === === === ===")
 
         avg_loss = 0.0
 
+        i = -1
+        batch_count = 0
         # Train
-        for i in range(train.num_samples):
-            print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Video Index: {i}", end="", flush=True)
-
+        while i < (train.num_samples-1):
+            batch_count+=1
             # Get input and class
 
-            if not train.downloadVideo(i):
+            batch_input = []
+            batch_labels = []
+
+            j = batch_size
+            while j > 0 and i < (train.num_samples-1):
+                i+=1
+
+                print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {train.num_samples}", end="", flush=True)
+
+                label = train.getLabel(i)
+                if torch.argmax(label) >= subset:
+                    continue
+
+                if not train.downloadVideo(i):
+                    continue
+                
+                try:
+                    input = train.extractFlow(i)[:,:64,:,:]
+                except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
+                    train.skip.append(i)
+                    continue
+
+                # Extend video if less than 64 frames
+                if input.size(1) < 64:
+                    input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
+                
+                batch_input.append(input)
+                batch_labels.append(label)
+                
+                
+                j-=1
+            
+            if len(batch_input) == 0:
                 continue
 
-            try:
-                input = train.extractFlow(i)[:,:64,:,:].to(dev)
-            except RuntimeError:    # For if frames cannot be extracted ie corrupt video
-                continue
-            label = train.getLabel(i).to(dev)
-
-            # Extend frames if less than 64
-            if input.shape[1] < 64:
-                input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64 - input.size(1)),1,1)), 1)
+            batch_input = torch.stack(batch_input).to(dev)
+            batch_labels = torch.stack(batch_labels).to(dev)
 
             # Empty gradients
             optim.zero_grad()
 
             # Forward pass
-            predict = model(input)
+            predict = model(batch_input)
 
             # Loss
-            loss = torch.nn.functional.cross_entropy(predict, label, reduction="mean")
+            loss = torch.nn.functional.cross_entropy(predict, batch_labels, reduction="mean")
 
             # Backward pass
             loss.backward()
@@ -62,7 +97,7 @@ def main():
             # Summing losses
             avg_loss += loss.item()
 
-        avg_loss /= train.num_samples
+        avg_loss /= batch_count
         print(f"\nTraining average loss: {avg_loss}")
 
         # Evaluations on validation set
@@ -70,36 +105,67 @@ def main():
         all_predict = []
         all_truth = []
 
+        i = -1
+        batch_count = 0
+
         with torch.no_grad():
-            for i in range(valid.num_samples):
-                print(f"\rValidating: {((i+1)/valid.num_samples)*100:.3f}%  |  Video Index: {i}", end="", flush=True)
+            while i < (valid.num_samples-1):
+                batch_count+=1
+                # Get input and class
 
-                if not valid.downloadVideo(i):
+                batch_input = []
+                batch_labels = []
+
+                j = batch_size
+                while j > 0 and i < (valid.num_samples-1):
+                    i+=1
+
+                    print(f"\rValidation: {((i+1)/valid.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {valid.num_samples}", end="", flush=True)
+
+                    label = valid.getLabel(i)
+                    if torch.argmax(label) >= subset:
+                        continue
+
+                    if not valid.downloadVideo(i):
+                        continue
+                    
+                    try:
+                        input = valid.extractFlow(i)[:,:64,:,:]
+                    except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
+                        valid.skip.append(i)
+                        continue
+
+                    # Extend video if less than 64 frames
+                    if input.size(1) < 64:
+                        input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
+                    
+                    batch_input.append(input)
+                    batch_labels.append(label)
+                    
+                    j-=1
+
+                if len(batch_input) == 0:
                     continue
+                
+                batch_input = torch.stack(batch_input).to(dev)
+                batch_labels = torch.stack(batch_labels).to(dev)
 
-                try:
-                    input = valid.extractFlow(i)[:,:64,:,:].to(dev)
-                except RuntimeError:    # For if frames cannot be extracted ie corrupt video
-                    continue
-                label = valid.getLabel(i).to(dev)
+                predict = model(batch_input)
+                all_predict.append(torch.argmax(predict, dim=1))
+                all_truth.append(torch.argmax(batch_labels, dim=1))
 
-                # Extend frames if less than 64
-                if input.shape[1] < 64:
-                    input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64 - input.size(1)),1,1)), 1)
+        all_predict = torch.cat(all_predict)
+        all_truth = torch.cat(all_truth)
 
-                predict = model(input)
-                all_predict.append(torch.argmax(predict))
-                all_truth.append(torch.argmax(label))
+        assert len(all_predict) == len(all_truth)
 
-        all_predict = torch.stack(all_predict)
-        all_truth = torch.stack(all_truth)
-
-        valid_acc = torch.sum(all_predict ==  all_truth) / valid.num_samples * 100
-        print(f"\nValidation accuracy: {valid_acc:.3f}%")
+        total_correct = torch.sum(all_predict ==  all_truth) 
+        valid_acc = total_correct / len(all_predict) * 100
+        print(f"\nValidation accuracy: {valid_acc:.3f}% ({total_correct}/{len(all_predict)})")
 
         if valid_acc > best_acc or epoch == 0:
             best_acc = valid_acc
-            torch.save(model.state_dict(), "./I3D_Flow_model.dat")
+            torch.save(model.state_dict(), "./I3D_RGB_model.dat")
 
 
 if __name__ == "__main__":
