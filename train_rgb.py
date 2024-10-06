@@ -6,8 +6,12 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 
+if torch.cuda.is_available():
+    dev = torch.device("cuda")
+else:
+    dev = torch.device("cpu")
 
-dev = torch.device("cuda")
+
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
@@ -19,6 +23,9 @@ def main():
 
     num_epochs = 100
     batch_size = 7
+
+    # Should be 100, 200, 500, or 1000
+    subset = 100
 
     best_acc = 0.0
 
@@ -43,6 +50,10 @@ def main():
 
                 print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {train.num_samples}", end="", flush=True)
 
+                label = train.getLabel(i)
+                if torch.argmax(label) >= subset:
+                    continue
+
                 if not train.downloadVideo(i):
                     continue
                 
@@ -57,9 +68,8 @@ def main():
                     input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
                 
                 batch_input.append(input)
-
-                labels = train.getLabel(j)
-                batch_labels.append(labels)
+                batch_labels.append(label)
+                
                 
                 j-=1
             
@@ -112,6 +122,10 @@ def main():
 
                     print(f"\rValidation: {((i+1)/valid.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {valid.num_samples}", end="", flush=True)
 
+                    label = valid.getLabel(i)
+                    if torch.argmax(label) >= subset:
+                        continue
+
                     if not valid.downloadVideo(i):
                         continue
                     
@@ -126,9 +140,7 @@ def main():
                         input = torch.cat((input, input[:,-1:,:,:].repeat(1,(64-input.size(1)),1,1)),1)
                     
                     batch_input.append(input)
-
-                    labels = valid.getLabel(j)
-                    batch_labels.append(labels)
+                    batch_labels.append(label)
                     
                     j-=1
 
