@@ -59,7 +59,7 @@ def main():
                 
                 try:
                     input = train.extractFlow(i)[:,:64,:,:]
-                except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
+                except:    # For if frames cannot be extracted ie corrupt videos
                     train.skip.append(i)
                     continue
 
@@ -131,7 +131,7 @@ def main():
                     
                     try:
                         input = valid.extractFlow(i)[:,:64,:,:]
-                    except RuntimeError:    # For if frames cannot be extracted ie corrupt videos
+                    except:    # For if frames cannot be extracted ie corrupt videos
                         valid.skip.append(i)
                         continue
 

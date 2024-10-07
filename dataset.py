@@ -216,7 +216,8 @@ class Dataset:
 
 
 if __name__ == "__main__":
-    training = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Training")
+    train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Train")
 
-    training.downloadVideo(1526)
+    train.downloadVideo(1526)
+    train.extractFlow(1526)
     
