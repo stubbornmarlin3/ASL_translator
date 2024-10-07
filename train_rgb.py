@@ -5,22 +5,34 @@
 from dataset import Dataset
 from i3d import I3D
 import torch
+import os
 
 if torch.cuda.is_available():
     dev = torch.device("cuda")
 else:
     dev = torch.device("cpu")
 
-
+model_savepath = "./I3D_RGB.pt"
 
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
 
     model = I3D().to(dev)
-
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
+    # For loading model from previous state after program is stopped (to not restart training unless need to)
+    if os.path.exists(model_savepath):
+        params = torch.load(model_savepath, weights_only=True)
+        os.rename(model_savepath, f"{model_savepath}.old")
+
+        model.load_state_dict(params["model_state"])
+        optim.load_state_dict(params["optim_state"])
+        last_loss = params["loss"]
+        last_epoch = params["epoch"]
+        last_valid_acc = params["valid_acc"]
+        print(f"Loading from saved model: {model_savepath}\nLast epoch: {last_epoch}\nLast training loss: {last_loss}\nLast validation accuracy: {last_valid_acc}")
+    
     num_epochs = 100
     batch_size = 7
 
@@ -165,7 +177,13 @@ def main():
 
         if valid_acc > best_acc or epoch == 0:
             best_acc = valid_acc
-            torch.save(model.state_dict(), "./I3D_RGB_model.dat")
+            torch.save({
+                "epoch" : epoch,
+                "model_state" : model.state_dict(),
+                "optim_state" : optim.state_dict(),
+                "loss" : loss,
+                "valid_acc" : valid_acc
+            }, model_savepath)
 
 
 if __name__ == "__main__":

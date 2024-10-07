@@ -27,6 +27,8 @@ class I3D(torch.nn.Module):
 
         self.avgpool = torch.nn.AvgPool3d(kernel_size=7)
 
+        self.dropout = torch.nn.Dropout3d(0.4)
+
         self.linear = torch.nn.Linear(1024, 1000)
 
         self.softmax = torch.nn.Softmax(dim=0)
@@ -217,16 +219,13 @@ class I3D(torch.nn.Module):
         inc7 = self.Inception(pool3, self.IncH)
         inc8 = self.Inception(inc7, self.IncI)
         pool4 = self.avgpool(inc8)
-        linear = self.linear(pool4.flatten(1))
+        drop = self.dropout(pool4)
+        linear = self.linear(drop.flatten(1))
         softmax = self.softmax(linear)
         return softmax
 
 
 if __name__ == "__main__":
     model = I3D()
-
-    test = torch.rand((2,3,64,224,224), dtype=torch.float32)
-    
-    model(test)
 
     
