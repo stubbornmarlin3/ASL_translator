@@ -37,7 +37,7 @@ def main():
     batch_size = 7
 
     # Should be 100, 200, 500, or 1000
-    subset = 100
+    subset = 25     # Trying smaller subset to test training
 
     best_acc = 0.0
 
