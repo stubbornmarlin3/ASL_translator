@@ -218,6 +218,8 @@ class Dataset:
 if __name__ == "__main__":
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Train")
 
-    train.downloadVideo(1526)
-    train.extractFlow(1526)
+    train.downloadVideo(0)
+    frames = train.extractFrames(0)
+    frames = torch.flip(frames, dims=(2,3))
+    cv2.imshow("Frames", frames.permute())
     

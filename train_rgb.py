@@ -6,6 +6,7 @@ from dataset import Dataset
 from i3d import I3D
 import torch
 import os
+import random
 
 if torch.cuda.is_available():
     dev = torch.device("cuda")
@@ -68,12 +69,15 @@ def main():
 
                 if not train.downloadVideo(i):
                     continue
-                
+
                 try:
-                    input = train.extractFrames(i)[:,:64,:,:]
+                    input = train.extractFrames(i)
                 except:    # For if frames cannot be extracted ie corrupt videos
                     train.skip.append(i)
                     continue
+                
+                start_frame = torch.randint(0,min(15, input.size(1)))
+                input = input[:,start_frame:(start_frame+64),:,:]
 
                 # Extend video if less than 64 frames
                 if input.size(1) < 64:
@@ -81,7 +85,6 @@ def main():
                 
                 batch_input.append(input)
                 batch_labels.append(label)
-                
                 
                 j-=1
             
