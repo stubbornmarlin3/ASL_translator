@@ -49,10 +49,12 @@ class Dataset:
         return self.data[index]["url"]
     
     def getLabel(self, index:int, subset:int) -> torch.Tensor:
-        "returns the label of the video for data[index] as a one-hot vector"
+        "returns the label of the video for data[index] as a one-hot vector. Raises exception if not in subset"
 
         result = torch.zeros(len(self.labels))
         result[self.data[index]["label"]] = 1
+        if torch.argmax(result) >= subset:
+            raise Exception("Not in subset")
         return result[:subset]
 
     def getPixelCrop(self, index:int) -> tuple[slice, slice]:

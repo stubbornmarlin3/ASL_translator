@@ -72,8 +72,9 @@ def main():
 
                 print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {train.num_samples}", end="", flush=True)
 
-                label = train.getLabel(i, subset)
-                if torch.argmax(label) >= subset:
+                try:
+                    label = train.getLabel(i, subset)
+                except: # Not in subset
                     continue
 
                 if not train.downloadVideo(i):
@@ -149,8 +150,9 @@ def main():
 
                     print(f"\rValidation: {((i+1)/valid.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {valid.num_samples}", end="", flush=True)
 
-                    label = valid.getLabel(i, subset)
-                    if torch.argmax(label) >= subset:
+                    try:
+                        label = valid.getLabel(i, subset)
+                    except: # Not in subset
                         continue
 
                     if not valid.downloadVideo(i):
