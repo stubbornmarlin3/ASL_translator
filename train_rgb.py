@@ -38,7 +38,7 @@ def main():
             last_loss = params["loss"]
             last_epoch = params["epoch"]
             last_valid_acc = params["valid_acc"]
-            print(f"Loading from saved model: {model_savepath}\nLast epoch: {last_epoch}\nLast training loss: {last_loss}\nLast validation accuracy: {last_valid_acc}")
+            print(f"Loading from saved model: {model_savepath}\nLast epoch: {last_epoch}\nLast training loss: {last_loss}\nLast validation accuracy: {last_valid_acc:.3f}%")
         else:
             print(f"Model does not exist: {model_savepath}")
             exit(1)
@@ -54,6 +54,7 @@ def main():
         print(f"=== === === === === === === Epoch {epoch} === === === === === === ===")
 
         avg_loss = 0.0
+        model.train()
 
         i = -1
         batch_count = 0
@@ -135,6 +136,7 @@ def main():
         batch_count = 0
 
         with torch.no_grad():
+            model.eval()
             while i < (valid.num_samples-1):
                 batch_count+=1
                 # Get input and class
