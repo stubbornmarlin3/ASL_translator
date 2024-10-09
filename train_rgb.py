@@ -32,7 +32,6 @@ def main():
             model_savepath = argv[argv.index("--load")+1]
         if os.path.exists(model_savepath):
             params = torch.load(model_savepath, weights_only=True)
-            os.rename(model_savepath, f"{model_savepath}.old")
 
             model.load_state_dict(params["model_state"])
             optim.load_state_dict(params["optim_state"])
@@ -47,7 +46,7 @@ def main():
         model_savepath = "./rgb_model.pt"
     
     num_epochs = 100
-    batch_size = 7
+    batch_size = 12
 
     best_acc = 0.0
 
@@ -198,6 +197,8 @@ def main():
 
         if valid_acc > best_acc or epoch == 0:
             best_acc = valid_acc
+            if os.path.exists(model_savepath):
+                os.rename(model_savepath, f"{model_savepath}.old")
             torch.save({
                 "epoch" : epoch,
                 "model_state" : model.state_dict(),
@@ -205,7 +206,6 @@ def main():
                 "loss" : loss,
                 "valid_acc" : valid_acc
             }, model_savepath)
-            os.rename(model_savepath, f"{model_savepath}.old")
 
 
 
