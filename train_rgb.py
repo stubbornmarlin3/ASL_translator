@@ -72,7 +72,7 @@ def main():
 
                 print(f"\rTraining: {((i+1)/train.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {train.num_samples}", end="", flush=True)
 
-                label = train.getLabel(i)
+                label = train.getLabel(i, subset)
                 if torch.argmax(label) >= subset:
                     continue
 
@@ -149,7 +149,7 @@ def main():
 
                     print(f"\rValidation: {((i+1)/valid.num_samples)*100:.3f}%  |  Batch: {batch_count}  |  Sample: {i} / {valid.num_samples}", end="", flush=True)
 
-                    label = valid.getLabel(i)
+                    label = valid.getLabel(i, subset)
                     if torch.argmax(label) >= subset:
                         continue
 

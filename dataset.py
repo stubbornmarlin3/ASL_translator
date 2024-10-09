@@ -48,12 +48,12 @@ class Dataset:
 
         return self.data[index]["url"]
     
-    def getLabel(self, index:int) -> torch.Tensor:
+    def getLabel(self, index:int, subset:int) -> torch.Tensor:
         "returns the label of the video for data[index] as a one-hot vector"
 
         result = torch.zeros(len(self.labels))
         result[self.data[index]["label"]] = 1
-        return result
+        return result[:subset]
 
     def getPixelCrop(self, index:int) -> tuple[slice, slice]:
         "returns slice object of pixel to crop video to. In format [heightStart:heightEnd, widthStart, widthEnd]"
