@@ -82,15 +82,14 @@ def main():
 
                 try:
                     input = train.extractFrames(i)
+                    start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
+                    input = input[:,start_frame:(start_frame+64),:,:]
+
+                    if random.randint(0,1):
+                        input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
                 except:    # For if frames cannot be extracted ie corrupt videos
                     train.skip.append(i)
                     continue
-                
-                start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
-                input = input[:,start_frame:(start_frame+64),:,:]
-
-                if random.randint(0,1):
-                    input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
 
                 # Extend video if less than 64 frames
                 if input.size(1) < 64:
@@ -160,15 +159,14 @@ def main():
                     
                     try:
                         input = valid.extractFrames(i)
+                        start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
+                        input = input[:,start_frame:(start_frame+64),:,:]
+
+                        if random.randint(0,1):
+                            input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
                     except:    # For if frames cannot be extracted ie corrupt videos
                         valid.skip.append(i)
                         continue
-
-                    start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
-                    input = input[:,start_frame:(start_frame+64),:,:]
-
-                    if random.randint(0,1):
-                        input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
 
                     # Extend video if less than 64 frames
                     if input.size(1) < 64:
