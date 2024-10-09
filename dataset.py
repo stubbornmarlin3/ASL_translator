@@ -220,6 +220,9 @@ if __name__ == "__main__":
 
     train.downloadVideo(0)
     frames = train.extractFrames(0)
-    frames = torch.flip(frames, dims=(2,3))
-    cv2.imshow("Frames", frames.permute())
+    print(frames.shape)
+    frames = torch.flip(frames, dims=[3])
+    cv2.imshow("Frames", np.array(frames.permute(1,2,3,0))[0])
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     

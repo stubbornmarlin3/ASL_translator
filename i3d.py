@@ -5,7 +5,7 @@
 import torch
 
 class I3D(torch.nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, subset:int) -> None:
         super().__init__()
 
         self.activation = torch.nn.ReLU()
@@ -29,7 +29,7 @@ class I3D(torch.nn.Module):
 
         self.dropout = torch.nn.Dropout3d(0.4)
 
-        self.linear = torch.nn.Linear(1024, 1000)
+        self.linear = torch.nn.Linear(1024, subset)
 
         self.softmax = torch.nn.Softmax(dim=0)
 

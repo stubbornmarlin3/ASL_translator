@@ -7,38 +7,47 @@ from i3d import I3D
 import torch
 import os
 import random
+from sys import argv
 
 if torch.cuda.is_available():
     dev = torch.device("cuda")
 else:
     dev = torch.device("cpu")
 
-model_savepath = "./I3D_RGB.pt"
-
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
 
-    model = I3D().to(dev)
+    # Should be 100, 200, 500, or 1000
+    subset = 25
+
+    model = I3D(subset).to(dev)
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     # For loading model from previous state after program is stopped (to not restart training unless need to)
-    if os.path.exists(model_savepath):
-        params = torch.load(model_savepath, weights_only=True)
-        os.rename(model_savepath, f"{model_savepath}.old")
+    if "-l" in argv or "--load" in argv:
+        try:
+            model_savepath = argv[argv.index("-l")+1]
+        except:
+            model_savepath = argv[argv.index("--load")+1]
+        if os.path.exists(model_savepath):
+            params = torch.load(model_savepath, weights_only=True)
+            os.rename(model_savepath, f"{model_savepath}.old")
 
-        model.load_state_dict(params["model_state"])
-        optim.load_state_dict(params["optim_state"])
-        last_loss = params["loss"]
-        last_epoch = params["epoch"]
-        last_valid_acc = params["valid_acc"]
-        print(f"Loading from saved model: {model_savepath}\nLast epoch: {last_epoch}\nLast training loss: {last_loss}\nLast validation accuracy: {last_valid_acc}")
+            model.load_state_dict(params["model_state"])
+            optim.load_state_dict(params["optim_state"])
+            last_loss = params["loss"]
+            last_epoch = params["epoch"]
+            last_valid_acc = params["valid_acc"]
+            print(f"Loading from saved model: {model_savepath}\nLast epoch: {last_epoch}\nLast training loss: {last_loss}\nLast validation accuracy: {last_valid_acc}")
+        else:
+            print(f"Model does not exist: {model_savepath}")
+            exit(1)
+    else:
+        model_savepath = "./rgb_model.pt"
     
     num_epochs = 100
     batch_size = 7
-
-    # Should be 100, 200, 500, or 1000
-    subset = 25     # Trying smaller subset to test training
 
     best_acc = 0.0
 
@@ -76,8 +85,11 @@ def main():
                     train.skip.append(i)
                     continue
                 
-                start_frame = torch.randint(0,min(15, input.size(1)))
+                start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
                 input = input[:,start_frame:(start_frame+64),:,:]
+
+                if random.randint(0,1):
+                    input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
 
                 # Extend video if less than 64 frames
                 if input.size(1) < 64:
@@ -145,10 +157,16 @@ def main():
                         continue
                     
                     try:
-                        input = valid.extractFrames(i)[:,:64,:,:]
+                        input = valid.extractFrames(i)
                     except:    # For if frames cannot be extracted ie corrupt videos
                         valid.skip.append(i)
                         continue
+
+                    start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
+                    input = input[:,start_frame:(start_frame+64),:,:]
+
+                    if random.randint(0,1):
+                        input = input.flip(dims=[3])    # Randomly flip video since ASL is the same left or right
 
                     # Extend video if less than 64 frames
                     if input.size(1) < 64:
@@ -187,6 +205,8 @@ def main():
                 "loss" : loss,
                 "valid_acc" : valid_acc
             }, model_savepath)
+            os.rename(model_savepath, f"{model_savepath}.old")
+
 
 
 if __name__ == "__main__":
