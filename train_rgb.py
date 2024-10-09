@@ -81,7 +81,7 @@ def main():
 
                 try:
                     input = train.extractFrames(i)
-                    start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
+                    start_frame = random.randint(0,min(15, input.size(1)-1))   # Start at a random frame (towards the beginning of the video)
                     input = input[:,start_frame:(start_frame+64),:,:]
 
                     if random.randint(0,1):
@@ -158,7 +158,7 @@ def main():
                     
                     try:
                         input = valid.extractFrames(i)
-                        start_frame = random.randint(0,min(15, input.size(1)))   # Start at a random frame (towards the beginning of the video)
+                        start_frame = random.randint(0,min(15, input.size(1)-1))   # Start at a random frame (towards the beginning of the video)
                         input = input[:,start_frame:(start_frame+64),:,:]
 
                         if random.randint(0,1):
