@@ -31,7 +31,7 @@ class I3D(torch.nn.Module):
 
         self.linear = torch.nn.Linear(1024, subset)
 
-        self.softmax = torch.nn.Softmax(dim=0)
+        self.softmax = torch.nn.Softmax(dim=1)
 
         self.IncA = torch.nn.ModuleList([
             torch.nn.Conv3d(192, 64, kernel_size=1),
