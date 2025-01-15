@@ -14,6 +14,12 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
+def initialize_weights(m):
+    if isinstance(m, (torch.nn.Conv3d, torch.nn.Linear)):
+        torch.nn.init.kaiming_normal_(m.weight)
+        if m.bias is not None:
+            torch.nn.init.constant_(m.bias, 0)
+
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
@@ -22,6 +28,8 @@ def main():
     subset = 10
 
     model = I3D(subset).to(dev)
+    model.apply(initialize_weights)
+
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
     # For loading model from previous state after program is stopped (to not restart training unless need to)
