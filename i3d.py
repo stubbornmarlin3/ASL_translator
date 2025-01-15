@@ -1,231 +1,133 @@
-# GoogLeNet CNN Class File
+# I3D CNN Class File
 # Aidan Carter
 # ASL Interpreter
 
 import torch
 
-class I3D(torch.nn.Module):
-    def __init__(self, subset:int) -> None:
+class Inception(torch.nn.Module):
+    def __init__(self, in_ch:int, out_ch_1x1:int, out_ch_3x3_reduce:int, out_ch_3x3:int, out_ch_5x5_reduce:int, out_ch_5x5:int) -> torch.nn.Module:
         super().__init__()
 
-        self.activation = torch.nn.ReLU()
+        self.relu = torch.nn.ReLU()
+
+        self.conv_1x1 = torch.nn.Conv3d(in_ch, out_ch_1x1, kernel_size=1)
         
-        self.conv0 = torch.nn.Conv3d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.conv_3x3_reduce = torch.nn.Conv3d(in_ch, out_ch_3x3_reduce, kernel_size=1)
 
-        self.maxpool0 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
+        self.conv_3x3 = torch.nn.Conv3d(out_ch_3x3_reduce, out_ch_3x3, kernel_size=3, padding="same")
 
-        self.lnorm0 = torch.nn.LocalResponseNorm(64)
+        self.conv_5x5_reduce = torch.nn.Conv3d(in_ch, out_ch_5x5_reduce, kernel_size=1)
 
-        self.conv1a = torch.nn.Conv3d(64, 64, kernel_size=1)
-        self.conv1b = torch.nn.Conv3d(64, 192, kernel_size=3, padding=1)
+        self.conv_5x5 = torch.nn.Conv3d(out_ch_5x5_reduce, out_ch_5x5, kernel_size=5, padding="same")
 
-        self.lnorm1 = torch.nn.LocalResponseNorm(192)
 
-        self.maxpool1 = torch.nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
 
-        self.maxpool2 = torch.nn.MaxPool3d(kernel_size=2, stride=2)
+        print("Inception :")
 
-        self.avgpool = torch.nn.AvgPool3d(kernel_size=7)
+        conv_1x1 = self.relu(self.conv_1x1(input))
+        print(conv_1x1.size())
 
-        self.dropout = torch.nn.Dropout3d(0.4)
+        conv_3x3_reduce = self.relu(self.conv_3x3_reduce(input))
+        print(conv_3x3_reduce.size())
+        conv_3x3 = self.relu(self.conv_3x3(conv_3x3_reduce))
+        print(conv_3x3.size())
 
-        self.linear = torch.nn.Linear(1024, subset)
+        conv_5x5_reduce = self.relu(self.conv_5x5_reduce(input))
+        print(conv_5x5_reduce.size())
+        conv_5x5 = self.relu(self.conv_5x5(conv_5x5_reduce))
+        print(conv_5x5.size())
+
+        print(": End")
+
+        return self.relu(torch.concat((conv_1x1, conv_3x3, conv_5x5), dim=1))
+
+
+class I3D(torch.nn.Module):
+
+    def __init__(self, classes:int) -> torch.nn.Module:
+        super().__init__()
+
+        self.relu = torch.nn.ReLU()
+
+        self.conv0 = torch.nn.Conv3d(3, 64, kernel_size=7, stride=2)
+
+        self.pool0 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), ceil_mode=True)
+
+        self.conv1 = torch.nn.Conv3d(64, 192, kernel_size=3, stride=1)
+
+        self.pool1 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), ceil_mode=True)
+
+        self.inc0 = Inception(192, 64, 96, 128, 16, 32)
+
+        self.inc1 = Inception(224, 128, 128, 192, 32, 96)
+
+        self.pool2 = torch.nn.MaxPool3d(kernel_size=3, stride=2, ceil_mode=True)
+
+        self.inc2 = Inception(416, 192, 96, 208, 16, 48)
+
+        self.inc3 = Inception(448, 160, 112, 224, 24, 64)
+
+        self.inc4 = Inception(448, 128, 128, 256, 24, 64)
+
+        self.inc5 = Inception(448, 112, 144, 288, 32, 64)
+
+        self.inc6 = Inception(464, 256, 160, 320, 32, 128)
+
+        self.pool3 = torch.nn.MaxPool3d(kernel_size=3, stride=2, ceil_mode=True, padding=1)
+
+        self.inc7 = Inception(704, 256, 160, 320, 32, 128)
+
+        self.inc8 = Inception(704, 384, 192, 384, 48, 128)
+
+        self.pool4 = torch.nn.AvgPool3d(kernel_size=7, stride=1)
+
+        self.linear = torch.nn.Linear(896, classes)
 
         self.softmax = torch.nn.Softmax(dim=1)
 
-        self.IncA = torch.nn.ModuleList([
-            torch.nn.Conv3d(192, 64, kernel_size=1),
-            torch.nn.BatchNorm3d(64),
-
-            torch.nn.Conv3d(192, 96, kernel_size=1),
-            torch.nn.Conv3d(96, 128, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.Conv3d(192, 16, kernel_size=1),
-            torch.nn.Conv3d(16, 32, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(32),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(0,1,1)),
-            torch.nn.Conv3d(192, 32, kernel_size=1, padding=(11,9,9)),
-            torch.nn.BatchNorm3d(32),
-
-        ])
-        
-        self.IncB = torch.nn.ModuleList([
-            torch.nn.Conv3d(256, 128, kernel_size=1),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.Conv3d(256, 128, kernel_size=1),
-            torch.nn.Conv3d(128, 192, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(192),
-
-            torch.nn.Conv3d(256, 32, kernel_size=1),
-            torch.nn.Conv3d(32, 96, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(96),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(0,1,1)),
-            torch.nn.Conv3d(256, 64, kernel_size=1, padding=(11,9,9)),
-            torch.nn.BatchNorm3d(64),
-        ])
-
-        self.IncC = torch.nn.ModuleList([
-            torch.nn.Conv3d(480, 192, kernel_size=1),
-            torch.nn.BatchNorm3d(192),
-
-            torch.nn.Conv3d(480, 96, kernel_size=1),
-            torch.nn.Conv3d(96, 208, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(208),
-
-            torch.nn.Conv3d(480, 16, kernel_size=1),
-            torch.nn.Conv3d(16, 48, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(48),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(1,0,0)),
-            torch.nn.Conv3d(480, 64, kernel_size=1, padding=5),
-            torch.nn.BatchNorm3d(64),
-        ])
-
-        self.IncD = torch.nn.ModuleList([
-            torch.nn.Conv3d(512, 160, kernel_size=1),
-            torch.nn.BatchNorm3d(160),
-
-            torch.nn.Conv3d(512, 112, kernel_size=1),
-            torch.nn.Conv3d(112, 224, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(224),
-
-            torch.nn.Conv3d(512, 24, kernel_size=1),
-            torch.nn.Conv3d(24, 64, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(64),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(1,0,0)),
-            torch.nn.Conv3d(512, 64, kernel_size=1, padding=5),
-            torch.nn.BatchNorm3d(64),
-        ])
-
-        self.IncE = torch.nn.ModuleList([
-            torch.nn.Conv3d(512, 128, kernel_size=1),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.Conv3d(512, 128, kernel_size=1),
-            torch.nn.Conv3d(128, 256, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(256),
-
-            torch.nn.Conv3d(512, 24, kernel_size=1),
-            torch.nn.Conv3d(24, 64, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(64),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(1,0,0)),
-            torch.nn.Conv3d(512, 64, kernel_size=1, padding=5),
-            torch.nn.BatchNorm3d(64),
-        ])
-
-        self.IncF = torch.nn.ModuleList([
-            torch.nn.Conv3d(512, 112, kernel_size=1),
-            torch.nn.BatchNorm3d(112),
-
-            torch.nn.Conv3d(512, 144, kernel_size=1),
-            torch.nn.Conv3d(144, 288, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(288),
-
-            torch.nn.Conv3d(512, 32, kernel_size=1),
-            torch.nn.Conv3d(32, 64, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(64),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(1,0,0)),
-            torch.nn.Conv3d(512, 64, kernel_size=1, padding=5),
-            torch.nn.BatchNorm3d(64),
-        ])
-
-        self.IncG = torch.nn.ModuleList([
-            torch.nn.Conv3d(528, 256, kernel_size=1),
-            torch.nn.BatchNorm3d(256),
-
-            torch.nn.Conv3d(528, 160, kernel_size=1),
-            torch.nn.Conv3d(160, 320, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(320),
-
-            torch.nn.Conv3d(528, 32, kernel_size=1),
-            torch.nn.Conv3d(32, 128, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(1,0,0)),
-            torch.nn.Conv3d(528, 128, kernel_size=1, padding=5),
-            torch.nn.BatchNorm3d(128),
-        ])
-
-        self.IncH = torch.nn.ModuleList([
-            torch.nn.Conv3d(832, 256, kernel_size=1),
-            torch.nn.BatchNorm3d(256),
-
-            torch.nn.Conv3d(832, 160, kernel_size=1),
-            torch.nn.Conv3d(160, 320, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(320),
-
-            torch.nn.Conv3d(832, 32, kernel_size=1),
-            torch.nn.Conv3d(32, 128, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(0,1,1)),
-            torch.nn.Conv3d(832, 128, kernel_size=1, padding=(3,2,2)),
-            torch.nn.BatchNorm3d(128),
-        ])
-
-        self.IncI = torch.nn.ModuleList([
-            torch.nn.Conv3d(832, 384, kernel_size=1),
-            torch.nn.BatchNorm3d(384),
-
-            torch.nn.Conv3d(832, 192, kernel_size=1),
-            torch.nn.Conv3d(192, 384, kernel_size=3, padding=1),
-            torch.nn.BatchNorm3d(384),
-
-            torch.nn.Conv3d(832, 48, kernel_size=1),
-            torch.nn.Conv3d(48, 128, kernel_size=5, padding=2),
-            torch.nn.BatchNorm3d(128),
-
-            torch.nn.MaxPool3d(kernel_size=3, padding=(0,1,1)),
-            torch.nn.Conv3d(832, 128, kernel_size=1, padding=(3,2,2)),
-            torch.nn.BatchNorm3d(128),
-        ])
-
-    def Inception(self, input:torch.Tensor, func:torch.nn.ModuleList) -> torch.Tensor:
-        convInc0 = self.activation(func[0](input))
-        bnorm0 = func[1](convInc0)
-        convInc1a = self.activation(func[2](input))
-        convInc1b = self.activation(func[3](convInc1a))
-        bnorm1 = func[4](convInc1b)
-        convInc2a = self.activation(func[5](input))
-        convInc2b = self.activation(func[6](convInc2a))
-        bnorm2 = func[7](convInc2b)
-        poolInc = func[8](input)
-        convIncPool = self.activation(func[9](poolInc))
-        bnormPool = func[10](convIncPool)
-        return torch.cat((bnorm0, bnorm1, bnorm2, bnormPool), 1)
-
     def forward(self, input:torch.Tensor) -> torch.Tensor:
-        conv0 = self.activation(self.conv0(input))
-        pool0 = self.maxpool0(conv0)
-        conv1a = self.conv1a(pool0)
-        conv1b = self.activation(self.conv1b(conv1a))
-        pool1 = self.maxpool0(conv1b)
-        inc0 = self.Inception(pool1, self.IncA)
-        inc1 = self.Inception(inc0, self.IncB)
-        pool2 = self.maxpool1(inc1)
-        inc2 = self.Inception(pool2, self.IncC)
-        inc3 = self.Inception(inc2, self.IncD)
-        inc4 = self.Inception(inc3, self.IncE)
-        inc5 = self.Inception(inc4, self.IncF)
-        inc6 = self.Inception(inc5, self.IncG)
-        pool3 = self.maxpool2(inc6)
-        inc7 = self.Inception(pool3, self.IncH)
-        inc8 = self.Inception(inc7, self.IncI)
-        pool4 = self.avgpool(inc8)
-        drop = self.dropout(pool4)
-        linear = self.linear(drop.flatten(1))
-        softmax = self.softmax(linear)
-        return softmax
 
+        print(input.size())
+        conv0 = self.relu(self.conv0(input))
+        print(conv0.size())
+        pool0 = self.pool0(conv0)
+        print(pool0.size())
+        conv1 = self.relu(self.conv1(pool0))
+        print(conv1.size())
+        pool1 = self.pool1(conv1)
+        print(pool1.size())
+        inc0 = self.inc0(pool1)
+        print(inc0.size())
+        inc1 = self.inc1(inc0)
+        print(inc1.size())
+        pool2 = self.pool2(inc1)
+        print(pool2.size())
+        inc2 = self.inc2(pool2)
+        print(inc2.size())
+        inc3 = self.inc3(inc2)
+        print(inc3.size())
+        inc4 = self.inc4(inc3)
+        print(inc4.size())
+        inc5 = self.inc5(inc4)
+        print(inc5.size())
+        inc6 = self.inc6(inc5)
+        print(inc6.size())
+        pool3 = self.pool3(inc6)
+        print(pool3.size())
+        inc7 = self.inc7(pool3)
+        print(inc7.size())
+        inc8 = self.inc8(inc7)
+        print(inc8.size())
+        pool4 = self.pool4(inc8)
+        print(pool4.size())
+        linear = self.relu(self.linear(pool4.flatten(1)))
+        print(linear.size())
+        softmax = self.softmax(linear)
+        print(softmax.size())
+        return(softmax)
 
 if __name__ == "__main__":
-    model = I3D()
-
-    
+    model = I3D(1000).to(torch.device("mps"))
+    test = torch.rand((2,3,64,224,224), dtype=torch.float32).to(torch.device("mps"))
+    print(model(test))
