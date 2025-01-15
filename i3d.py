@@ -96,8 +96,7 @@ class I3D(torch.nn.Module):
         inc8 = self.inc8(inc7)
         pool4 = self.pool4(inc8)
         linear = self.relu(self.linear(pool4.flatten(1)))
-        softmax = self.softmax(linear)
-        return(softmax)
+        return(linear)
 
 if __name__ == "__main__":
     model = I3D(1000).to(torch.device("mps"))

@@ -51,6 +51,12 @@ class Dataset:
     def getLabel(self, index:int, subset:int) -> torch.Tensor:
         "returns the label of the video for data[index] as a one-hot vector. Raises exception if not in subset"
 
+
+        result = self.data[index]["label"]
+        if result >= subset:
+            raise Exception("Not in subset")
+        return result
+
         result = torch.zeros(len(self.labels))
         result[self.data[index]["label"]] = 1
         if torch.argmax(result) >= subset:

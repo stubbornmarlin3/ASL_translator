@@ -14,12 +14,6 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
-def initialize_weights(m):
-    if isinstance(m, (torch.nn.Conv3d, torch.nn.Linear)):
-        torch.nn.init.kaiming_normal_(m.weight)
-        if m.bias is not None:
-            torch.nn.init.constant_(m.bias, 0)
-
 def main():
     train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json", "./Train")
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
@@ -28,7 +22,6 @@ def main():
     subset = 10
 
     model = I3D(subset).to(dev)
-    model.apply(initialize_weights)
 
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 
@@ -54,7 +47,7 @@ def main():
         model_savepath = "./rgb_model.pt"
     
     num_epochs = 10
-    batch_size = 12
+    batch_size = 1
 
     best_acc = 0.0
 
@@ -112,7 +105,7 @@ def main():
                 continue
 
             batch_input = torch.stack(batch_input).to(dev)
-            batch_labels = torch.stack(batch_labels).to(dev)
+            batch_labels = torch.tensor(batch_labels, dtype=int).to(dev)
 
             # Empty gradients
             optim.zero_grad()
@@ -122,6 +115,7 @@ def main():
 
             # Loss
             loss = torch.nn.functional.cross_entropy(predict, batch_labels, reduction="mean")
+            print(loss.item())
 
             # Backward pass
             loss.backward()
