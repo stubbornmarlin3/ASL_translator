@@ -115,7 +115,6 @@ def main():
 
             # Loss
             loss = torch.nn.functional.cross_entropy(predict, batch_labels, reduction="mean")
-            print(loss.item())
 
             # Backward pass
             loss.backward()
@@ -184,7 +183,7 @@ def main():
                     continue
                 
                 batch_input = torch.stack(batch_input).to(dev)
-                batch_labels = torch.stack(batch_labels).to(dev)
+                batch_labels = torch.tensor(batch_labels, dtype=int).to(dev)
 
                 predict = model(batch_input)
                 all_predict.append(torch.argmax(predict, dim=1))
