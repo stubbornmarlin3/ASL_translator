@@ -23,22 +23,13 @@ class Inception(torch.nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
 
-        print("Inception :")
-
         conv_1x1 = self.relu(self.conv_1x1(input))
-        print(conv_1x1.size())
 
         conv_3x3_reduce = self.relu(self.conv_3x3_reduce(input))
-        print(conv_3x3_reduce.size())
         conv_3x3 = self.relu(self.conv_3x3(conv_3x3_reduce))
-        print(conv_3x3.size())
 
         conv_5x5_reduce = self.relu(self.conv_5x5_reduce(input))
-        print(conv_5x5_reduce.size())
         conv_5x5 = self.relu(self.conv_5x5(conv_5x5_reduce))
-        print(conv_5x5.size())
-
-        print(": End")
 
         return self.relu(torch.concat((conv_1x1, conv_3x3, conv_5x5), dim=1))
 
@@ -88,43 +79,24 @@ class I3D(torch.nn.Module):
 
     def forward(self, input:torch.Tensor) -> torch.Tensor:
 
-        print(input.size())
         conv0 = self.relu(self.conv0(input))
-        print(conv0.size())
         pool0 = self.pool0(conv0)
-        print(pool0.size())
         conv1 = self.relu(self.conv1(pool0))
-        print(conv1.size())
         pool1 = self.pool1(conv1)
-        print(pool1.size())
         inc0 = self.inc0(pool1)
-        print(inc0.size())
         inc1 = self.inc1(inc0)
-        print(inc1.size())
         pool2 = self.pool2(inc1)
-        print(pool2.size())
         inc2 = self.inc2(pool2)
-        print(inc2.size())
         inc3 = self.inc3(inc2)
-        print(inc3.size())
         inc4 = self.inc4(inc3)
-        print(inc4.size())
         inc5 = self.inc5(inc4)
-        print(inc5.size())
         inc6 = self.inc6(inc5)
-        print(inc6.size())
         pool3 = self.pool3(inc6)
-        print(pool3.size())
         inc7 = self.inc7(pool3)
-        print(inc7.size())
         inc8 = self.inc8(inc7)
-        print(inc8.size())
         pool4 = self.pool4(inc8)
-        print(pool4.size())
         linear = self.relu(self.linear(pool4.flatten(1)))
-        print(linear.size())
         softmax = self.softmax(linear)
-        print(softmax.size())
         return(softmax)
 
 if __name__ == "__main__":
