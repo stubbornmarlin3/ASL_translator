@@ -19,7 +19,7 @@ def main():
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
 
     # Should be 100, 200, 500, or 1000
-    subset = 25
+    subset = 10
 
     model = I3D(subset).to(dev)
     optim = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
@@ -45,7 +45,7 @@ def main():
     else:
         model_savepath = "./rgb_model.pt"
     
-    num_epochs = 100
+    num_epochs = 10
     batch_size = 12
 
     best_acc = 0.0
@@ -97,7 +97,7 @@ def main():
                 
                 batch_input.append(input)
                 batch_labels.append(label)
-                
+            
                 j-=1
             
             if len(batch_input) == 0:

@@ -5,7 +5,7 @@
 import torch
 
 class Inception(torch.nn.Module):
-    def __init__(self, in_ch:int, out_ch_1x1:int, out_ch_3x3_reduce:int, out_ch_3x3:int, out_ch_5x5_reduce:int, out_ch_5x5:int) -> torch.nn.Module:
+    def __init__(self, in_ch:int, out_ch_1x1:int, out_ch_3x3_reduce:int, out_ch_3x3:int, out_ch_5x5_reduce:int, out_ch_5x5:int):
         super().__init__()
 
         self.relu = torch.nn.ReLU()
@@ -36,7 +36,7 @@ class Inception(torch.nn.Module):
 
 class I3D(torch.nn.Module):
 
-    def __init__(self, classes:int) -> torch.nn.Module:
+    def __init__(self, classes:int):
         super().__init__()
 
         self.relu = torch.nn.ReLU()

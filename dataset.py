@@ -129,7 +129,7 @@ class Dataset:
         
         return True
 
-    def deleteVideo(self, index:int) -> bool:
+    def deleteVideo(self, index:int) -> None:
         "deletes clip from downloads (mainly to not fill up storage)"
 
         if self.isVideoDownloaded(index):
