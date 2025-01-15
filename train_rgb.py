@@ -187,7 +187,7 @@ def main():
 
                 predict = model(batch_input)
                 all_predict.append(torch.argmax(predict, dim=1))
-                all_truth.append(torch.argmax(batch_labels, dim=1))
+                all_truth.append(batch_labels)
 
         all_predict = torch.cat(all_predict)
         all_truth = torch.cat(all_truth)
