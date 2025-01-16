@@ -19,7 +19,7 @@ def main():
     valid = Dataset("./MS-ASL/MSASL_val.json", "./MS-ASL/MSASL_classes.json", "./Valid")
 
     # Should be 100, 200, 500, or 1000
-    subset = 10
+    subset = 2
 
     model = I3D(subset).to(dev)
 
@@ -46,7 +46,7 @@ def main():
     else:
         model_savepath = "./rgb_model.pt"
     
-    num_epochs = 10
+    num_epochs = 100
     batch_size = 1
 
     best_acc = 0.0
