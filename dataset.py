@@ -244,6 +244,7 @@ if __name__ == "__main__":
     try:
         start = int(sys.argv[1])
     except:
+        print("Starting...")
         start = 0
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
     dataset.download(start)
