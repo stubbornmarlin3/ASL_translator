@@ -1,8 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-while [[$? -ne 0]]; do
+while true; do
     rm cookies.txt
-    sleep 5
     $HOME/test/bin/python dataset.py $?
-    
+    exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        break
+    else
+        sleep 5
+    fi
 done
