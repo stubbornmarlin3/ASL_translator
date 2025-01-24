@@ -9,6 +9,7 @@ while true; do
     if [ $exit_code -eq 0 ]; then
         break
     else
+        echo $exit_code
         sleep 5
     fi
 done
