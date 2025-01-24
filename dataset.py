@@ -212,9 +212,10 @@ class Dataset:
 
     def download(self):
         # Go through list of entries
+        numErr = 0
         for index, entry in enumerate(self.entries):
             # Print status
-            print(f"\rDownloading: {index+1/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)}", end="", flush=True)
+            print(f"\rDownloading: {(index+1)/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)} | Errors: {numErr}", end="", flush=True)
             # Make sample object
             sample = Sample(index, entry, self.savePath)
             try:
@@ -222,6 +223,7 @@ class Dataset:
                 sample.processVideo()
             except Exception as e:
                 # Write exceptions to log
+                numErr += 1
                 with open(f"{self.savePath}/download.log", "a") as f:
                     f.write(f"\n|{index}|{type(e)} {e}")
             finally:
