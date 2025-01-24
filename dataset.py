@@ -30,11 +30,11 @@ class Sample:
         self.savePath = savePath
 
     def isVideoDownloaded(self) -> bool:
-        return os.path.exists(f"{self.savePath}/{self.index}.mp4")
+        return os.path.exists(f"{self.savePath}/Videos/{self.index}.mp4")
     
     def isVideoProcessed(self) -> bool:
-        return (os.path.exists(f"{self.savePath}/{self.index}_rgb.mp4") and
-                os.path.exists(f"{self.savePath}/{self.index}_flow.mp4"))
+        return (os.path.exists(f"{self.savePath}/Videos/{self.index}_rgb.mp4") and
+                os.path.exists(f"{self.savePath}/Videos/{self.index}_flow.mp4"))
 
     def getUrl(self) -> str:
         return self.entry["url"]
@@ -46,7 +46,7 @@ class Sample:
         return tuple(self.entry["box"])
     
     def getResolution(self) -> tuple[int, int]:
-        probe = ffmpeg.probe(f"{self.savePath}/{self.index}.mp4")
+        probe = ffmpeg.probe(f"{self.savePath}/Videos/{self.index}.mp4")
 
         # Get video stream by selecting the stream in probe where codec_type is video
         stream = [stream for stream in probe["streams"] if stream["codec_type"] == "video"][0]
@@ -63,7 +63,7 @@ class Sample:
         # Saves file as "{index}.mp4"
         ydlArgs = {
             "format" : "bestvideo[ext=mp4]",
-            "outtmpl" : f"{self.savePath}/{self.index}.mp4",
+            "outtmpl" : f"{self.savePath}/Videos/{self.index}.mp4",
             "noplaylist" : True,
             "logger" : loggerOutputs(self.index, self.savePath),
             "cookiefile" : "cookies.txt",
@@ -103,9 +103,9 @@ class Sample:
 
         # Get file, trim, crop, and output
         out, err = (
-            ffmpeg.input(f"{self.savePath}/{self.index}.mp4", ss=startTime, to=endTime)
+            ffmpeg.input(f"{self.savePath}/Videos/{self.index}.mp4", ss=startTime, to=endTime)
             .filter("crop", cropWidth, cropHeight, cropX, cropY)
-            .output(f"{self.savePath}/{self.index}_tmp.mp4")
+            .output(f"{self.savePath}/Videos/{self.index}_tmp.mp4")
             .run(overwrite_output=True, quiet=True)
         )
 
@@ -121,17 +121,17 @@ class Sample:
         # This will also be input into seperate model
 
         # Input video
-        video = cv2.VideoCapture(f"{self.savePath}/{self.index}_tmp.mp4")
+        video = cv2.VideoCapture(f"{self.savePath}/Videos/{self.index}_tmp.mp4")
         # Output for RGB video
         outputRGB = cv2.VideoWriter(
-            f"{self.savePath}/{self.index}_rgb.mp4",
+            f"{self.savePath}/Videos/{self.index}_rgb.mp4",
             cv2.VideoWriter_fourcc(*"avc1"),
             video.get(cv2.CAP_PROP_FPS),
             (224, 224)
         )
         # Output for Optical Flow video
         outputFlow = cv2.VideoWriter(
-            f"{self.savePath}/{self.index}_flow.mp4",
+            f"{self.savePath}/Videos/{self.index}_flow.mp4",
             cv2.VideoWriter_fourcc(*"avc1"),
             video.get(cv2.CAP_PROP_FPS),
             (224, 224)
@@ -193,8 +193,8 @@ class Sample:
         outputFlow.release()
 
         # Delete unnecessary files
-        os.remove(f"{self.savePath}/{self.index}_tmp.mp4")
-        os.remove(f"{self.savePath}/{self.index}.mp4")
+        os.remove(f"{self.savePath}/Videos/{self.index}_tmp.mp4")
+        os.remove(f"{self.savePath}/Videos/{self.index}.mp4")
 
 class Dataset:
     def __init__(self, datasetJsonFile:str, savePath:str="."):
