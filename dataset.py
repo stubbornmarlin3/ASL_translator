@@ -78,8 +78,9 @@ class Sample:
                     break
             except DownloadError as e:
                 if "This content isn't available" in str(e):
-                    print()
-                    exit(self.index) # Exit with index as exit code
+                    # Print error index then exit
+                    print(f"\n{self.index}", end="")
+                    exit(1) 
                 if "Private video" in str(e) or "Video unavailable" in str(e):
                     break
                 
@@ -244,7 +245,6 @@ if __name__ == "__main__":
     try:
         start = int(sys.argv[1])
     except:
-        print("Starting...")
         start = 0
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
     dataset.download(start)
