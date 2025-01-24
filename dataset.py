@@ -204,6 +204,11 @@ class Dataset:
 
         self.entries:list[dict] = loads(entries)
         self.savePath = savePath
+        
+        if not os.path.exists(f"{self.savePath}"):
+            os.mkdir(f"{self.savePath}")
+        if not os.path.exists(f"{self.savePath}/Videos"):
+            os.mkdir(f"{self.savePath}/Videos")
 
     def download(self):
         # Go through list of entries
