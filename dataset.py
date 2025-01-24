@@ -76,8 +76,11 @@ class Sample:
                     ydl.download(self.getUrl())
                     break
             except DownloadError as e:
+                if "This content isn't available" in str(e):
+                    exit(1)
                 if "Private video" in str(e) or "Video unavailable" in str(e):
                     break
+                
                 
 
     def processVideo(self) -> None:
