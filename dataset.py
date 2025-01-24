@@ -67,7 +67,7 @@ class Sample:
             "noplaylist" : True,
             "logger" : loggerOutputs(self.index, self.savePath),
             "cookiefile" : "cookies.txt",
-            # "verbose" : True,
+            "verbose" : True,
         }
 
         for i in range(retryAttempts):
@@ -229,6 +229,7 @@ class Dataset:
             finally:
                 # Delete sample object just to make sure garbage collection gets it
                 del sample
+        print() # So that shell doesnt overwrite prompt
 
 class Dataloader:
     pass
@@ -237,3 +238,6 @@ class Dataloader:
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
     dataset.download()
+    # e = dataset.entries
+    # sample = Sample(37, e[37], "./Train")
+    # sample.downloadVideo()
