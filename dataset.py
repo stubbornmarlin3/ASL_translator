@@ -125,14 +125,14 @@ class Sample:
         # Output for RGB video
         outputRGB = cv2.VideoWriter(
             f"{self.savePath}/Videos/{self.index}_rgb.mp4",
-            cv2.VideoWriter_fourcc(*"avc1"),
+            cv2.VideoWriter_fourcc(*"mp4v"),
             video.get(cv2.CAP_PROP_FPS),
             (224, 224)
         )
         # Output for Optical Flow video
         outputFlow = cv2.VideoWriter(
             f"{self.savePath}/Videos/{self.index}_flow.mp4",
-            cv2.VideoWriter_fourcc(*"avc1"),
+            cv2.VideoWriter_fourcc(*"mp4v"),
             video.get(cv2.CAP_PROP_FPS),
             (224, 224)
         )
@@ -213,8 +213,8 @@ class Dataset:
     def download(self):
         # Go through list of entries
         for index, entry in enumerate(self.entries):
-            if index == 10:
-                break
+            # Print status
+            print(f"\rDownloading: {index+1/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)}", end="", flush=True)
             # Make sample object
             sample = Sample(index, entry, self.savePath)
             try:
