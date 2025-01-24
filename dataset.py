@@ -8,6 +8,7 @@ import os
 import ffmpeg
 import cv2
 import numpy as np
+import sys
 
 class loggerOutputs:
     def __init__(self, index:int, savePath:str):
@@ -77,7 +78,8 @@ class Sample:
                     break
             except DownloadError as e:
                 if "This content isn't available" in str(e):
-                    exit(1)
+                    print()
+                    exit(self.index) # Exit with index as exit code
                 if "Private video" in str(e) or "Video unavailable" in str(e):
                     break
                 
@@ -239,8 +241,12 @@ class Dataloader:
 
 
 if __name__ == "__main__":
+    try:
+        start = int(sys.argv[1])
+    except:
+        start = 0
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
-    dataset.download(4000)
+    dataset.download(start)
     # e = dataset.entries
     # sample = Sample(5845, e[5845], "./Train")
     # try:
