@@ -1,207 +1,166 @@
-# Dataset Class File
+# Dataloader Class File
 # Aidan Carter
 # ASL Interpreter
 
-from yt_dlp import YoutubeDL
-from yt_dlp.utils import download_range_func, DownloadError
+from yt_dlp import YoutubeDL, DownloadError
 from json import loads
-import cv2
-import torch
-import numpy as np
 import os
 import ffmpeg
-
+import cv2
+import numpy as np
 
 class loggerOutputs:
-    def error(msg):
-        pass
-    def warning(msg):
-        pass
-    def debug(msg):
-        pass
-
-class Dataset:
-    "Class to manipulate datasets"
-
-    def __init__(self, filePath:str, labelPath:str, savePath:str, frameSize:tuple[int,int]=(224,224)) -> None:
-
-        self.filePath = filePath
-        self.labelPath = labelPath
+    def __init__(self, index:int, savePath:str):
+        self.index = index
         self.savePath = savePath
-        self.frameSize = frameSize
+    def error(self, msg):
+        with open(f"{self.savePath}/download.log", "a") as f:
+            f.write(f"\n|{self.index}|{msg}")
+    def warning(self, msg):
+        with open(f"{self.savePath}/download.log", "a") as f:
+            f.write(f"\n|{self.index}|{msg}")
+    def debug(self, msg):
+        with open(f"{self.savePath}/download.log", "a") as f:
+            f.write(f"\n|{self.index}|{msg}")
 
-        with open(self.filePath) as f:
-            data = f.read()
+class Sample:
+    def __init__(self, index:int, entry:dict, savePath:str="."):
+        self.entry = entry
+        self.index = index
+        self.savePath = savePath
 
-        self.data:list[dict] = loads(data)
-
-        with open(self.labelPath) as f:
-            labels = f.read()
-        
-        self.labels:list = loads(labels)
-        self.num_samples:int = len(self.data)
-
-        self.skip:list = []
-        
-    def getUrl(self, index:int) -> str:
-        "returns the url of the video for data[index]"
-
-        return self.data[index]["url"]
+    def isVideoDownloaded(self) -> bool:
+        return os.path.exists(f"{self.savePath}/{self.index}.mp4")
     
-    def getLabel(self, index:int, subset:int) -> torch.Tensor:
-        "returns the label of the video for data[index] as a one-hot vector. Raises exception if not in subset"
+    def isVideoProcessed(self) -> bool:
+        return (os.path.exists(f"{self.savePath}/{self.index}_rgb.mp4") and
+                os.path.exists(f"{self.savePath}/{self.index}_flow.mp4"))
 
+    def getUrl(self) -> str:
+        return self.entry["url"]
 
-        result = self.data[index]["label"]
-        if result >= subset:
-            raise Exception("Not in subset")
-        return result
+    def getTrimTimes(self) -> tuple[str, str]:
+        return (str(self.entry["start_time"]), str(self.entry["end_time"]))
 
-        result = torch.zeros(len(self.labels))
-        result[self.data[index]["label"]] = 1
-        if torch.argmax(result) >= subset:
-            raise Exception("Not in subset")
-        return result[:subset]
+    def getBoundingBox(self) -> tuple[float, float, float, float]:
+        return tuple(self.entry["box"])
+    
+    def getResolution(self) -> tuple[int, int]:
+        probe = ffmpeg.probe(f"{self.savePath}/{self.index}.mp4")
 
-    def getPixelCrop(self, index:int) -> tuple[slice, slice]:
-        "returns slice object of pixel to crop video to. In format [heightStart:heightEnd, widthStart, widthEnd]"
+        # Get video stream by selecting the stream in probe where codec_type is video
+        stream = [stream for stream in probe["streams"] if stream["codec_type"] == "video"][0]
 
-        h = self.data[index]["height"]
-        w = self.data[index]["width"]
-        b = self.data[index]["box"]
+        return (stream["width"], stream["height"])
 
-        heightStart = int(b[0] * h)
-        heightEnd = int(b[2] * h)
-
-        widthStart = int(b[1] * w)
-        widthEnd = int(b[3] * w)
-
-        return slice(heightStart, heightEnd), slice(widthStart, widthEnd)
+    def downloadVideo(self, retryAttempts:int=3) -> None:
+        # Check if video is downloaded or processed
+        if self.isVideoDownloaded() or self.isVideoProcessed():
+            return
         
-    def getClipTime(self, index:int) -> tuple[float, float]:
-        "returns start and end time for clip"
-
-        start = self.data[index]["start_time"]
-        end = self.data[index]["end_time"]
-
-        return start, end
-
-    def isVideoDownloaded(self, index:int) -> bool:
-        "returns whether video is downloaded or not"
-
-        return os.path.exists(f"{self.savePath}/Videos/{index}.mp4")
-
-    def downloadVideo(self, index:int) -> bool:
-        "downloads clip from video for data[index]. returns True if download completes, False if video cannot be downloaded"
-
-        if index in self.skip:
-            return False
-
-        if self.isVideoDownloaded(index):
-            return True
-
-        args = {
-            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
-            "download_ranges" : download_range_func(None, [self.getClipTime(index)]),
-            "force_keyframes_at_cuts" : True,
-            "outtmpl" : f"{self.savePath}/Videos/{index}.%(ext)s",
-            "quiet" : True,
-            "logger" : loggerOutputs,
+        # Options for Youtube Downloader
+        # Downloads best video with no audio
+        # Saves file as "{index}.mp4"
+        ydlArgs = {
+            "format" : "bestvideo[ext=mp4]",
+            "outtmpl" : f"{self.savePath}/{self.index}.mp4",
+            "noplaylist" : True,
+            "logger" : loggerOutputs(self.index, self.savePath),
+            "cookiefile" : "cookies.txt",
+            # "verbose" : True,
         }
 
-        try:
-            with YoutubeDL(args) as ydl:
-                ydl.download(self.getUrl(index))
-        except DownloadError:
-            self.skip.append(index)
-            return False
-        
-        # Resize video if not correct resolution
-        try:
-            if ffmpeg.probe(f"{self.savePath}/Videos/{index}.mp4")["streams"][0]["height"] != self.data[index]["height"]:
-                os.rename(f"{self.savePath}/Videos/{index}.mp4", f"{self.savePath}/Videos/{index}_old.mp4")
-                video = ffmpeg.input(f"{self.savePath}/Videos/{index}_old.mp4")
-                resize = (
-                    video
-                    .filter('scale', int(self.data[index]["width"]), int(self.data[index]["height"]))
-                    .output(f"{self.savePath}/Videos/{index}.mp4", loglevel="quiet")
-                    .overwrite_output()
-                    .run()
-                )
-                os.remove(f"{self.savePath}/Videos/{index}_old.mp4")
-        except KeyError:    # For corrupt videos
-            self.skip.append(index)
-            return False
-        
-        return True
+        for i in range(retryAttempts):
+            try:
+                with YoutubeDL(ydlArgs) as ydl:
+                    ydl.download(self.getUrl())
+                    break
+            except DownloadError as e:
+                if "Private video" in str(e) or "Video unavailable" in str(e):
+                    break
+                
 
-    def deleteVideo(self, index:int) -> None:
-        "deletes clip from downloads (mainly to not fill up storage)"
+    def processVideo(self) -> None:
+        # Check if video is already processed
+        if self.isVideoProcessed():
+            return
+        # Check if video is not downloaded
+        if not self.isVideoDownloaded():
+            raise ValueError(f"{self.index}.mp4 does not exist.")
 
-        if self.isVideoDownloaded(index):
-            os.remove(f"{self.savePath}/Videos/{index}.mp4")
-        else:
-            print("Could not delete video: File does not exist.")
+        # Use helper functions to get resolution of video, the trim times for the entry, and the bounding box
+        width, height = self.getResolution()
+        startTime, endTime = self.getTrimTimes()
+        boxY0, boxX0, boxY1, boxX1 = self.getBoundingBox()
 
+        # Get pixel values for top left corner from normalized values and resolution
+        cropY = int(boxY0 * height)
+        cropX = int(boxX0 * width)
 
-    def extractFrames(self, index:int) -> torch.Tensor:
-        "Each frame is cropped and resized to self.frameSize. Pixel values are normalized. Returns array of frames [channels, depth(frames), height, width]. Raises exception if video is not downloaded"
+        # Get crop width and height from difference from normalized values of bottom right corner
+        cropHeight = int(boxY1 * height) - cropY
+        cropWidth = int(boxX1 * width) - cropX
 
-        if not self.isVideoDownloaded(index):
-            raise Exception("Video Not Downloaded!")
+        # Get file, trim, crop, and output
+        out, err = (
+            ffmpeg.input(f"{self.savePath}/{self.index}.mp4", ss=startTime, to=endTime)
+            .filter("crop", cropWidth, cropHeight, cropX, cropY)
+            .output(f"{self.savePath}/{self.index}_tmp.mp4")
+            .run(overwrite_output=True, quiet=True)
+        )
 
-        cap = cv2.VideoCapture(f"{self.savePath}/Videos/{index}.mp4")
-        frames = []
+        # Log stdout and stderr from ffmpeg into process.log
+        with open(f"{self.savePath}/process.log", "a") as f:
+            if out != b'':
+                f.write(f"|{self.index}|{out.decode('utf-8')}")
+            if err != b'':
+                f.write(f"|{self.index}|{err.decode('utf-8')}")
 
-        while True:
-            ret, frame = cap.read()
+        # Resize video to fit into input of model
+        # While resizing RGB video, calculate optical flow frames
+        # This will also be input into seperate model
 
-            if not ret:
-                break
-            
-            croppedFrame = frame[self.getPixelCrop(index)]
-            resizedFrame = cv2.resize(croppedFrame, self.frameSize)
-            normFrame = resizedFrame / 255      # Normalize pixel values between 0 - 1
+        # Input video
+        video = cv2.VideoCapture(f"{self.savePath}/{self.index}_tmp.mp4")
+        # Output for RGB video
+        outputRGB = cv2.VideoWriter(
+            f"{self.savePath}/{self.index}_rgb.mp4",
+            cv2.VideoWriter_fourcc(*"avc1"),
+            video.get(cv2.CAP_PROP_FPS),
+            (224, 224)
+        )
+        # Output for Optical Flow video
+        outputFlow = cv2.VideoWriter(
+            f"{self.savePath}/{self.index}_flow.mp4",
+            cv2.VideoWriter_fourcc(*"avc1"),
+            video.get(cv2.CAP_PROP_FPS),
+            (224, 224)
+        )
 
-            frames.append(normFrame)
+        # Get initial frame and convert to grayscale for optical flow calculation
+        ret, frame = video.read()
+        resizedFrame = cv2.resize(frame, (224, 224))
+        prevGray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
 
-        cap.release()
-
-        return torch.tensor(np.array(frames), dtype=torch.float32).permute(3,0,1,2)
-    
-    def extractFlow(self, index:int) -> torch.Tensor:
-        "Each frame is cropped, converted to grayscale, and resized to self.frameSize. Dense optical flow is calculated. Returns array of optical flow frames [channels, depth(frames), height, width]. Raises exception if video is not downloaded"
-
-        if not self.isVideoDownloaded(index):
-            raise Exception("Video Not Downloaded!")
-        
-        cap = cv2.VideoCapture(f"{self.savePath}/Videos/{index}.mp4")
-
-        ret, init_frame = cap.read()
-        
-        croppedFrame = init_frame[self.getPixelCrop(index)]
-        resizedFrame = cv2.resize(croppedFrame, self.frameSize)
-        prev_gray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
-
-        mask = np.zeros_like(resizedFrame)
-        mask[..., 1] = 255
-
-        frames = []
-
-        while True:
-            ret, frame = cap.read()
-
+        while video.isOpened():
+            # Get frame
+            ret, frame = video.read()
+            # If no more frames returned, break out of loop
             if not ret:
                 break
 
-            croppedFrame = frame[self.getPixelCrop(index)]
-            resizedFrame = cv2.resize(croppedFrame, self.frameSize)
-            next_gray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+            # Resize frame
+            resizedFrame = cv2.resize(frame, (224, 224))
+            # Write frame to output
+            outputRGB.write(resizedFrame)
 
+            # Convert current frame to grayscale
+            gray = cv2.cvtColor(resizedFrame, cv2.COLOR_BGR2GRAY)
+            # Calulate optical flow
             flow = cv2.calcOpticalFlowFarneback(
-                prev_gray, 
-                next_gray, 
-                flow=None, 
+                prevGray,
+                gray,
+                flow=None,
                 pyr_scale=0.5,
                 levels=3,
                 winsize=15,
@@ -209,24 +168,65 @@ class Dataset:
                 poly_n=5,
                 poly_sigma=1.2,
                 flags=0
-                )
-            
-            magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-            mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+            )
+            # Make current gray frame into previous frame
+            prevGray = gray
+            # Normalize flow for visualization and convert to HSV
+            magnitude, angle = cv2.cartToPolar(flow[...,0], flow[...,1])
+            # Make empty frame
+            hsv = np.zeros_like(resizedFrame)
+            # Make H (Hue) be the direction of optical flow
+            # Take angle in radians and convert to degrees 
+            hsv[...,0] = angle * (180 / np.pi) / 2
+            # Make S (Saturation) be max value 255
+            hsv[...,1] = 255
+            # Make V (Value) be normalized magnitude
+            hsv[...,2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+            # Convert the colors from HSV to RGB
+            flowRGB = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            # Write frame to output
+            outputFlow.write(flowRGB)
 
-            coloredFlow = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
-            normFlow = coloredFlow / 255
+        # Release all of the cv2 objects
+        video.release()
+        outputRGB.release()
+        outputFlow.release()
 
-            frames.append(normFlow)
+        # Delete unnecessary files
+        os.remove(f"{self.savePath}/{self.index}_tmp.mp4")
+        os.remove(f"{self.savePath}/{self.index}.mp4")
 
-        cap.release()
-        return torch.tensor(np.array(frames), dtype=torch.float32).permute(3,0,1,2)
+class Dataset:
+    def __init__(self, datasetJsonFile:str, savePath:str="."):
+
+        with open(datasetJsonFile) as f:
+            entries = f.read()
+
+        self.entries:list[dict] = loads(entries)
+        self.savePath = savePath
+
+    def download(self):
+        # Go through list of entries
+        for index, entry in enumerate(self.entries):
+            if index == 10:
+                break
+            # Make sample object
+            sample = Sample(index, entry, self.savePath)
+            try:
+                sample.downloadVideo()
+                sample.processVideo()
+            except Exception as e:
+                # Write exceptions to log
+                with open(f"{self.savePath}/download.log", "a") as f:
+                    f.write(f"\n|{index}|{type(e)} {e}")
+            finally:
+                # Delete sample object just to make sure garbage collection gets it
+                del sample
+
+class Dataloader:
+    pass
 
 
 if __name__ == "__main__":
-    train = Dataset("./MS-ASL/MSASL_train.json", "./MS-ASL/MSASL_classes.json",  "./Train")
-
-    train.downloadVideo(10431)
-    frames = train.extractFrames(10431)
-    print(frames.shape)
-    
+    dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
+    dataset.download()
