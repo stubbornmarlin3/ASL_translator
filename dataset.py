@@ -210,10 +210,10 @@ class Dataset:
         if not os.path.exists(f"{self.savePath}/Videos"):
             os.mkdir(f"{self.savePath}/Videos")
 
-    def download(self):
+    def download(self, start:int=0):
         # Go through list of entries
         numErr = 0
-        for index, entry in enumerate(self.entries):
+        for index, entry in enumerate(self.entries, start=start):
             # Print status
             print(f"\rDownloading: {(index+1)/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)} | Errors: {numErr}", end="", flush=True)
             # Make sample object
@@ -237,11 +237,11 @@ class Dataloader:
 
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
-    # dataset.download()
-    e = dataset.entries
-    sample = Sample(5845, e[5845], "./Train")
-    try:
-        sample.downloadVideo()
-        sample.processVideo()
-    except:
-        print("Here")
+    dataset.download(4000)
+    # e = dataset.entries
+    # sample = Sample(5845, e[5845], "./Train")
+    # try:
+    #     sample.downloadVideo()
+    #     sample.processVideo()
+    # except:
+    #     print("Here")
