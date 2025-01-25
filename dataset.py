@@ -219,11 +219,11 @@ class Dataset:
     def download(self, start:int=0):
         # Go through list of entries
         numErr = 0
-        for index, entry in enumerate(self.entries, start=start):
+        for index in range(start, len(self.entries)):
             # Print status
             print(f"\rDownloading: {(index+1)/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)} | Errors: {numErr}", end="", flush=True)
             # Make sample object
-            sample = Sample(index, entry, self.savePath)
+            sample = Sample(index, self.entries[index], self.savePath)
             try:
                 sample.downloadVideo()
                 sample.processVideo()
@@ -236,6 +236,7 @@ class Dataset:
                 # Delete sample object just to make sure garbage collection gets it
                 del sample
         print() # So that shell doesnt overwrite prompt
+        exit(0)
 
 class Dataloader:
     pass
@@ -246,6 +247,7 @@ if __name__ == "__main__":
         start = int(sys.argv[1])
     except:
         start = 0
+    start=15001
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
     dataset.download(start)
     # e = dataset.entries
