@@ -247,7 +247,6 @@ if __name__ == "__main__":
         start = int(sys.argv[1])
     except:
         start = 0
-    start=15001
     dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
     dataset.download(start)
     # e = dataset.entries
