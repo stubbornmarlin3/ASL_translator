@@ -68,10 +68,10 @@ class Sample:
             "noplaylist" : True,
             "logger" : loggerOutputs(self.index, self.savePath),
             "cookiefile" : "cookies.txt",
-            "sleep_interval" : 1,
+            "sleep_interval" : 2,
             "max_sleep_interval" : 5,
             "retries" : 2,
-            "limit_rate" : "500K",
+            "limit_rate" : "50K",
             "concurrent_fragments" : 1,
             # "verbose" : True,
         }
@@ -83,7 +83,6 @@ class Sample:
                     break
             except DownloadError as e:
                 if "Sign in to confirm" in str(e):
-                    print("\n0", end="")
                     exit(1)
                 if "This content isn't available" in str(e):
                     # Print error index then exit
