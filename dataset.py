@@ -68,6 +68,11 @@ class Sample:
             "noplaylist" : True,
             "logger" : loggerOutputs(self.index, self.savePath),
             "cookiefile" : "cookies.txt",
+            "sleep_interval" : 5,
+            "max_sleep_interval" : 10,
+            "retries" : 2,
+            "limit_rate" : "500K",
+            "concurrent_fragments" : 1,
             # "verbose" : True,
         }
 
