@@ -235,8 +235,8 @@ class Dataset:
             finally:
                 # Delete sample object just to make sure garbage collection gets it
                 del sample
-        print() # So that shell doesnt overwrite prompt
-        exit(0)
+        print("\n0", end="") # Print 0 for bash exit condition
+
 
 class Dataloader:
     pass
