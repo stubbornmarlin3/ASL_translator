@@ -77,6 +77,9 @@ class Sample:
                     ydl.download(self.getUrl())
                     break
             except DownloadError as e:
+                if "Sign in to confirm" in str(e):
+                    print("\n0", end="")
+                    exit(1)
                 if "This content isn't available" in str(e):
                     # Print error index then exit
                     print(f"\n{self.index}", end="")
