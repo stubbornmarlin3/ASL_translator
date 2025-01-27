@@ -84,12 +84,10 @@ class Sample:
             except DownloadError as e:
                 if "Sign in to confirm" in str(e):
                     exit(1)
-                if "This content isn't available" in str(e):
+                if "This content" in str(e):
                     # Print error index then exit
                     print(f"\n{self.index}", end="")
-                    exit(1) 
-                if "Private video" in str(e) or "Video unavailable" in str(e):
-                    break
+                    exit(1)
                 
                 
 
