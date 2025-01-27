@@ -82,14 +82,14 @@ class Sample:
                     ydl.download(self.getUrl())
                     break
             except DownloadError as e:
-                if "Sign in to confirm" in str(e):
-                    exit(1)
-                if "This content" in str(e):
+                if "content" in str(e):
                     # Print error index then exit
                     print(f"\n{self.index}", end="")
                     exit(1)
-                
-                
+                if "Sign in to confirm" in str(e):
+                    exit(1)
+                if "unavailable" in str(e) or "private" in str(e):
+                    break
 
     def processVideo(self) -> None:
         # Check if video is already processed
@@ -226,7 +226,7 @@ class Dataset:
         numErr = 0
         for index in range(start, len(self.entries)):
             # Print status
-            print(f"\rDownloading: {(index+1)/len(self.entries)*100:.3f}% | Completed: {index} / {len(self.entries)} | Errors: {numErr}", end="", flush=True)
+            print(f"\rDownloading: {(index)/(len(self.entries)-1)*100:.3f}% | Completed: {index} / {len(self.entries)-1} | Errors: {numErr}", end="", flush=True)
             # Make sample object
             sample = Sample(index, self.entries[index], self.savePath)
             try:
@@ -252,7 +252,7 @@ if __name__ == "__main__":
         start = int(sys.argv[1])
     except:
         start = 0
-    dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
+    dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
     dataset.download(start)
     # e = dataset.entries
     # sample = Sample(5845, e[5845], "./Train")
