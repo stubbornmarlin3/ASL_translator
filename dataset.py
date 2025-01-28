@@ -9,6 +9,8 @@ import ffmpeg
 import cv2
 import numpy as np
 import sys
+import torch
+import torchcodec
 
 class loggerOutputs:
     def __init__(self, index:int, savePath:str):
@@ -31,30 +33,55 @@ class Sample:
         self.savePath = savePath
 
     def isVideoDownloaded(self) -> bool:
+        "Returns True if video is in Videos folder"
         return os.path.exists(f"{self.savePath}/Videos/{self.index}.mp4")
     
     def isVideoProcessed(self) -> bool:
+        "Returns True if video has been processed into rgb and flow frames. Videos are stored in Videos folder"
         return (os.path.exists(f"{self.savePath}/Videos/{self.index}_rgb.mp4") and
                 os.path.exists(f"{self.savePath}/Videos/{self.index}_flow.mp4"))
 
     def getUrl(self) -> str:
+        "Returns the url from the sample"
         return self.entry["url"]
 
     def getTrimTimes(self) -> tuple[str, str]:
+        "Returns a tuple of the start and end time for the clip from the sample"
         return (str(self.entry["start_time"]), str(self.entry["end_time"]))
 
     def getBoundingBox(self) -> tuple[float, float, float, float]:
+        "Returns a tuple of bounding box coords in format [Y0,X0,Y1,X1]"
         return tuple(self.entry["box"])
     
     def getResolution(self) -> tuple[int, int]:
+        "Returns the resolution of the downloaded video as a tuple [width,height]"
         probe = ffmpeg.probe(f"{self.savePath}/Videos/{self.index}.mp4")
 
         # Get video stream by selecting the stream in probe where codec_type is video
         stream = [stream for stream in probe["streams"] if stream["codec_type"] == "video"][0]
 
         return (stream["width"], stream["height"])
+    
+    def getLabel(self) -> int:
+        "Returns the label from the sample"
+        return self.entry["label"]
+    
+    def load(self, flow:bool=False) -> torch.Tensor:
+        """
+        Returns a tensor of normalized pixel values from the downloaded and processed video.\n
+        Will return values from the RGB processed video by default.\n
+        If flow is True, will return optical flow frames instead.\n
+        Tensor will be in shape [3, numFrames, 224, 224]
+        """
+        pass
+
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
+        """
+        Downloads video to {savePath}/Videos folder with name {index}.mp4\n
+        Will exit program with exit code 1 if sign in is needed or content is blocked\n
+        Can specify retryAttempts (default is 3)
+        """
         # Check if video is downloaded or processed
         if self.isVideoDownloaded() or self.isVideoProcessed():
             return
@@ -92,6 +119,10 @@ class Sample:
                     break
 
     def processVideo(self) -> None:
+        """
+        Processes {index}.mp4 into two videos {index}_rgb.mp4 and {index}_flow.mp4\n
+        Deletes {index.mp4} when complete, as it is not needed anymore
+        """
         # Check if video is already processed
         if self.isVideoProcessed():
             return
@@ -222,6 +253,10 @@ class Dataset:
             os.mkdir(f"{self.savePath}/Videos")
 
     def download(self, start:int=0):
+        """
+        Downloads all videos in dataset specified to save path specified.\n
+        Can specify a starting index (defaults to 0)
+        """
         # Go through list of entries
         numErr = 0
         for index in range(start, len(self.entries)):
@@ -241,10 +276,6 @@ class Dataset:
                 # Delete sample object just to make sure garbage collection gets it
                 del sample
         print("\n0", end="") # Print 0 for bash exit condition
-
-
-class Dataloader:
-    pass
 
 
 if __name__ == "__main__":
