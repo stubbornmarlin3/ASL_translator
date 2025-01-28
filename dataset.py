@@ -252,7 +252,7 @@ if __name__ == "__main__":
         start = int(sys.argv[1])
     except:
         start = 0
-    dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
+    dataset = Dataset("./MS-ASL/MSASL_test.json", "./Test")
     dataset.download(start)
     # e = dataset.entries
     # sample = Sample(5845, e[5845], "./Train")
