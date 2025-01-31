@@ -72,9 +72,6 @@ class ASLModel:
                     print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
                     assert not torch.isnan(loss).any(), "NaN detected in loss"
 
-                for name, param in self.model.named_parameters():
-                    print(f"{name} - {param.grad}")
-
                 # Back prop and optimize
                 self.scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
@@ -82,8 +79,8 @@ class ASLModel:
                 for name, param in self.model.named_parameters():
                     print(f"{name} - {param.grad}")
 
-                for name, param in self.model.named_parameters():
-                    writer.add_histogram(f'gradients/{name}', param.grad, epoch)
+                # for name, param in self.model.named_parameters():
+                #     writer.add_histogram(f'gradients/{name}', param.grad, epoch)
 
                 self.scaler.step(self.optim)
                 self.scaler.update()
