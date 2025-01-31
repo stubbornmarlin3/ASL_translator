@@ -348,7 +348,6 @@ class Dataloader:
             if item == None:
                 continue
             # Append loaded video to batch list
-            assert torch.isfinite(item[0]).any(), "Missing Values"
             batchVideos.append(item[0])
             batchLabels.append(item[1])
 

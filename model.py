@@ -65,6 +65,7 @@ class ASLModel:
                 
                 with torch.amp.autocast(device_type="cuda"):
                     # Get predictions
+                    assert torch.isfinite(X).all(), "Missing values"
                     pred = self.model(X)
                     # Calculate loss
                     loss = self.lossFunc(pred, y)
@@ -74,6 +75,7 @@ class ASLModel:
                 # Back prop and optimize
                 self.scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
 
                 for name, param in self.model.named_parameters():
                     writer.add_histogram(f'gradients/{name}', param.grad, epoch)
