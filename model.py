@@ -77,8 +77,7 @@ class ASLModel:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
                 for name, param in self.model.named_parameters():
-                    if param.grad is None:
-                        print(f"Warning: {name} has no gradients!")
+                    print(f"{name} - {param.grad}")
 
                 for name, param in self.model.named_parameters():
                     writer.add_histogram(f'gradients/{name}', param.grad, epoch)
