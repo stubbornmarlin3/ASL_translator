@@ -13,6 +13,7 @@ class ASLModel:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-4)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=10)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
@@ -65,6 +66,9 @@ class ASLModel:
                     pred = self.model(X)
                     # Calculate loss
                     loss = self.lossFunc(pred, y)
+                    print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
+                    assert not torch.isnan(loss).any(), "NaN detected in loss"
+
 
                 # Back prop and optimize
                 self.scaler.scale(loss).backward()
