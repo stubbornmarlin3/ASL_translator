@@ -88,7 +88,7 @@ class Sample:
             frames = frames[num:num+64]
 
         # Permute to get [channels, frames, width, height] and then normalize pixel values
-        return frames.permute(1,0,2,3)
+        return frames.permute(1,0,2,3).to(dtype=torch.float32)
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
         """
