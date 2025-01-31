@@ -8,7 +8,7 @@ class ASLModel:
     def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.subset = subset
         self.batchSize = batchSize
-        self.model = I3D(subset)
+        self.model = I3D(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
