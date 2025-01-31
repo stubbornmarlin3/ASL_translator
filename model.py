@@ -12,7 +12,8 @@ class ASLModel:
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
-        self.optim = torch.optim.SGD(self.model.parameters(), lr=1e-3)
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-4)
+        self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
 
@@ -59,14 +60,17 @@ class ASLModel:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
                 
-                # Get predictions
-                pred = self.model(X)
-                # Calculate loss
-                loss = self.lossFunc(pred, y)
+                with torch.amp.autocast():
+                    # Get predictions
+                    pred = self.model(X)
+                    # Calculate loss
+                    loss = self.lossFunc(pred, y)
 
                 # Back prop and optimize
-                loss.backward()
-                self.optim.step()
+                self.scaler.scale(loss).backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                self.scaler.step(self.optim)
+                self.scaler.update()
                 self.optim.zero_grad()
 
                 print(f"\rTraining: {dataloader.currentIndex / len(dataloader) * 100:.3f}% | Batch: {batch} | Loss: {loss.item():.6f}", end="", flush=True)
