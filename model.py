@@ -3,17 +3,18 @@ from i3d import I3D
 import torch
 import os
 from datetime import datetime
+from torchvision.models.video import r3d_18
 
 class ASLModel:
     def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.subset = subset
         self.batchSize = batchSize
-        self.model = I3D(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.model = r3d_18().to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-4)
-        self.scaler = torch.amp.GradScaler()
+        # self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
 
@@ -43,12 +44,12 @@ class ASLModel:
                 print(f"\r{'Validating' if validation else 'Testing'}: {dataloader.currentIndex / len(dataloader) * 100:.3f}% | Batch: {batch} | Loss: {loss.item():.6f}", end="", flush=True)
 
         # Calculate average loss and accuracy
-        avgLoss = sum(avgLoss) / len(avgLoss)
-        accuracy = correct.count(True) / len(correct) * 100       
+        # avgLoss = sum(avgLoss) / len(avgLoss)
+        # accuracy = correct.count(True) / len(correct) * 100       
         # Save model if validating    
-        if validation:
-            torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.i3d")
-        print(f" | Average Loss: {avgLoss:.6f} | Accuracy: {accuracy:.3f}%")
+        # if validation:
+        #     torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.i3d")
+        # print(f" | Average Loss: {avgLoss:.6f} | Accuracy: {accuracy:.3f}%")
 
 
     def train(self, numEpochs:int=1):
@@ -56,21 +57,19 @@ class ASLModel:
         for epoch in range(numEpochs):
             print(f"--- Epoch {epoch+1} ---")
             self.model.train()
-
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
-                
-                with torch.amp.autocast(device_type="cuda"):
-                    # Get predictions
-                    pred = self.model(X)
-                    # Calculate loss
-                    loss = self.lossFunc(pred, y)
+                # with torch.amp.autocast(device_type="cuda"):
+                # Get predictions
+                pred = self.model(X)
+                # Calculate loss
+                loss = self.lossFunc(pred, y)
 
                 # Back prop and optimize
-                self.scaler.scale(loss).backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-                self.scaler.step(self.optim)
-                self.scaler.update()
+                loss.backward()
+                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                self.optim.step()
+                # self.scaler.update()
                 self.optim.zero_grad()
 
                 print(f"\rTraining: {dataloader.currentIndex / len(dataloader) * 100:.3f}% | Batch: {batch} | Loss: {loss.item():.6f}", end="", flush=True)
@@ -80,5 +79,5 @@ class ASLModel:
             self.test(validation=True)
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=12, subset=10)
+    model = ASLModel("./Models", batchSize=12, subset=1000)
     model.train(numEpochs=2)
