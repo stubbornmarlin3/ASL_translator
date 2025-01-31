@@ -3,6 +3,7 @@ from i3d import I3D
 import torch
 import os
 from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 class ASLModel:
     def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
@@ -53,6 +54,7 @@ class ASLModel:
 
 
     def train(self, numEpochs:int=1):
+        writer = SummaryWriter()
 
         for epoch in range(numEpochs):
             print(f"--- Epoch {epoch+1} ---")
@@ -69,10 +71,13 @@ class ASLModel:
                     print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
                     assert not torch.isnan(loss).any(), "NaN detected in loss"
 
-
                 # Back prop and optimize
                 self.scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
+                for name, param in self.model.named_parameters():
+                    writer.add_histogram(f'gradients/{name}', param.grad, epoch)
+
                 self.scaler.step(self.optim)
                 self.scaler.update()
                 self.optim.zero_grad()
@@ -83,6 +88,8 @@ class ASLModel:
             # Run test on validation set
             self.test(validation=True)
 
+        writer.close()
+
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=12, subset=10)
-    model.train(numEpochs=2)
+    model = ASLModel("./Models", batchSize=1, subset=1000)
+    model.train(numEpochs=10)
