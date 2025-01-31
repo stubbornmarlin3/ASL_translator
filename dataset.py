@@ -8,9 +8,9 @@ import os
 import ffmpeg
 import cv2
 import numpy as np
-import sys
 import torch
-import torchcodec
+from torchcodec.decoders import VideoDecoder
+import random
 
 class loggerOutputs:
     def __init__(self, index:int, savePath:str):
@@ -69,12 +69,26 @@ class Sample:
     def load(self, flow:bool=False) -> torch.Tensor:
         """
         Returns a tensor of normalized pixel values from the downloaded and processed video.\n
+        Tensor will be in shape [3, 64, 224, 224] with the 64 frames being contiguous but from random start point\n
         Will return values from the RGB processed video by default.\n
         If flow is True, will return optical flow frames instead.\n
-        Tensor will be in shape [3, numFrames, 224, 224]
         """
-        pass
 
+        # Make decoder for video
+        decoder = VideoDecoder(f"{self.savePath}/Videos/{self.index}_{'flow' if flow else 'rgb'}.mp4", device=('cuda' if torch.cuda.is_available() else 'cpu'))
+
+        # Make tensor of all frames decoded
+        frames = decoder[:]
+        # If less than 64 frames, extend last frame to get to 64 frames
+        # Otherwise select a 64 frame clip from the video at random
+        if frames.size(0) < 64:
+            frames = torch.cat((frames, frames[-1].repeat(64-frames.size(0),1,1,1)))
+        else:
+            num = random.randint(0,max(0,frames.size(0)-64))    # To prevent index errors
+            frames = frames[num:num+64]
+
+        # Permute to get [channels, frames, width, height] and then normalize pixel values
+        return frames.permute(1,0,2,3) / 255
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
         """
@@ -277,18 +291,79 @@ class Dataset:
                 del sample
         print("\n0", end="") # Print 0 for bash exit condition
 
+class Dataloader:
+    def __init__(self, dataset:Dataset, subset:int, batchSize:int=1, flow:bool=False):
+        self.dataset = dataset
+        self.subset = subset
+        self.batchSize = batchSize
+        self.flow = flow
+        self.currentIndex = 0
+
+    def __len__(self):
+        return len(self.dataset.entries)
+
+    def __iter__(self):
+        "Return iterable object"
+        return self
+    
+    def __getitem__(self, index:int) -> tuple[torch.Tensor, int]:
+        "Return tensor of loaded video at index and its label"
+        if isinstance(index, slice):
+            raise ValueError("Index cannot be slice")
+        try:
+            # Try to make and load sample
+            sample = Sample(index, self.dataset.entries[index], self.dataset.savePath)
+            return (sample.load(self.flow), sample.getLabel())
+        except IndexError:
+            # If index out of range, entry does not exist to raise IndexError
+            raise
+        except ValueError:
+            # If ValueError, video does not exist so just return None
+            return None
+        finally:
+            # Make sure sample is deleted to free memory
+            del sample
+    
+    def __next__(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Returns next batch of tensors\n 
+        Will attempt to return batchSize tensors (could be less if at end of samples)\n
+        Raises StopIteration if there are no more tensors to return
+        """
+        # If current index is at end of entries, raise StopIteration
+        if self.currentIndex == len(self.dataset.entries):
+            raise StopIteration
+        
+        batchVideos = []
+        batchLabels = []
+        while len(batchVideos) < self.batchSize and self.currentIndex < len(self.dataset.entries):
+            # Load video
+            item = self.__getitem__(self.currentIndex)
+            # Increment index
+            self.currentIndex+=1
+            # If no video to load, then just get next video
+            if item == None or item[1] >= self.subset:
+                continue
+            # Append loaded video to batch list
+            batchVideos.append(item[0])
+            batchLabels.append(item[1])
+
+        # If batch is empty, raise StopIteration as there is no more videos
+        if not batchVideos:
+            raise StopIteration
+        
+        return (torch.stack(batchVideos), torch.tensor(batchLabels))
+
 
 if __name__ == "__main__":
-    try:
-        start = int(sys.argv[1])
-    except:
-        start = 0
-    dataset = Dataset("./MS-ASL/MSASL_test.json", "./Test")
-    dataset.download(start)
+    dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
+    dataset.download()
     # e = dataset.entries
-    # sample = Sample(5845, e[5845], "./Train")
-    # try:
-    #     sample.downloadVideo()
-    #     sample.processVideo()
-    # except:
-    #     print("Here")
+    # sample = Sample(17000, e[17000], "./Train")    
+    # print(sample.load())
+    # dataloader = Dataloader(dataset, 100, 3)
+    # print(len(dataloader))
+    # for batch, labels in dataloader:
+    #     print(batch, labels)
+
+    
