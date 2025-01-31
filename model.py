@@ -60,7 +60,7 @@ class ASLModel:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
                 
-                with torch.amp.autocast():
+                with torch.amp.autocast(device_type="cuda"):
                     # Get predictions
                     pred = self.model(X)
                     # Calculate loss
