@@ -76,11 +76,15 @@ class ASLModel:
                 self.scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
-                for name, param in self.model.named_parameters():
-                    print(f"{name} - {param.grad}")
-
                 # for name, param in self.model.named_parameters():
-                #     writer.add_histogram(f'gradients/{name}', param.grad, epoch)
+                #     print(f"{name} - {param.grad}")
+
+                try:
+                    for name, param in self.model.named_parameters():
+                    writer.add_histogram(f'gradients/{name}', param.grad, epoch)
+                except:
+                    print("NaN Found")
+                
 
                 self.scaler.step(self.optim)
                 self.scaler.update()
