@@ -86,13 +86,9 @@ class Sample:
         else:
             num = random.randint(0,max(0,frames.size(0)-64))    # To prevent index errors
             frames = frames[num:num+64]
-
-            frames = frames.permute(1,0,2,3)
-            mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1, 1).to(device=torch.device("cuda"))
-            std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1, 1).to(device=torch.device("cuda"))
-            frames = (frames - mean) / std
-                    # Permute to get [channels, frames, width, height] and then normalize pixel values
-        return frames
+  
+        # Permute to get [channels, frames, width, height] and then normalize pixel values
+        return frames.permute(1,0,2,3) / 255.0
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
         """
