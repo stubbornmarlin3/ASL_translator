@@ -51,12 +51,12 @@ class ASLModel:
 
 
     def train(self, numEpochs:int=1):
-        dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
 
         for epoch in range(numEpochs):
             print(f"--- Epoch {epoch+1} ---")
             self.model.train()
 
+            dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
                 
                 # Get predictions
@@ -76,5 +76,5 @@ class ASLModel:
             self.test(validation=True)
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=12, subset=25)
+    model = ASLModel("./Models", batchSize=12, subset=10)
     model.train(numEpochs=2)

@@ -31,7 +31,7 @@ class Inception(torch.nn.Module):
         conv_5x5_reduce = self.relu(self.conv_5x5_reduce(input))
         conv_5x5 = self.relu(self.conv_5x5(conv_5x5_reduce))
 
-        return self.relu(torch.cat((conv_1x1, conv_3x3, conv_5x5), dim=1))
+        return torch.cat((conv_1x1, conv_3x3, conv_5x5), dim=1)
 
 
 class I3D(torch.nn.Module):
@@ -94,7 +94,7 @@ class I3D(torch.nn.Module):
         inc8 = self.inc8(inc7)
         pool4 = self.pool4(inc8)
         pool4_flattened = torch.flatten(pool4, start_dim=1)
-        linear = self.relu(self.linear(pool4_flattened))
+        linear = self.linear(pool4_flattened)
         return(linear)
 
 if __name__ == "__main__":
