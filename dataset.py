@@ -342,13 +342,13 @@ class Dataloader:
         while len(batchVideos) < self.batchSize and self.currentIndex < len(self.dataset.entries):
             # Load video
             item = self.__getitem__(self.currentIndex)
-            assert not torch.isnan(item[0]).any()
             # Increment index
             self.currentIndex+=1
             # If no video to load, then just get next video
             if item == None:
                 continue
             # Append loaded video to batch list
+            assert torch.isfinite(item[0]).any(), "Missing Values"
             batchVideos.append(item[0])
             batchLabels.append(item[1])
 
