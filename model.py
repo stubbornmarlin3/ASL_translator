@@ -76,5 +76,5 @@ class ASLModel:
             self.test(validation=True)
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", 15)
-    model.train()
+    model = ASLModel("./Models", batchSize=12, subset=25)
+    model.train(numEpochs=2)
