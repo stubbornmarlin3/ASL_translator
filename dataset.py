@@ -313,7 +313,10 @@ class Dataloader:
         try:
             # Try to make and load sample
             sample = Sample(index, self.dataset.entries[index], self.dataset.savePath)
-            return (sample.load(self.flow), sample.getLabel())
+            if sample.getLabel() < self.subset:
+                return (sample.load(self.flow), sample.getLabel())
+            else:
+                return None
         except IndexError:
             # If index out of range, entry does not exist to raise IndexError
             raise
@@ -342,7 +345,7 @@ class Dataloader:
             # Increment index
             self.currentIndex+=1
             # If no video to load, then just get next video
-            if item == None or item[1] >= self.subset:
+            if item == None:
                 continue
             # Append loaded video to batch list
             batchVideos.append(item[0])
