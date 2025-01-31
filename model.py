@@ -81,7 +81,7 @@ class ASLModel:
 
                 try:
                     for name, param in self.model.named_parameters():
-                    writer.add_histogram(f'gradients/{name}', param.grad, epoch)
+                        writer.add_histogram(f'gradients/{name}', param.grad, epoch)
                 except:
                     print("NaN Found")
                 
