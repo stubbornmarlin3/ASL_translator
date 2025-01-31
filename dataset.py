@@ -342,6 +342,7 @@ class Dataloader:
         while len(batchVideos) < self.batchSize and self.currentIndex < len(self.dataset.entries):
             # Load video
             item = self.__getitem__(self.currentIndex)
+            assert not torch.isnan(item[0]).any()
             # Increment index
             self.currentIndex+=1
             # If no video to load, then just get next video
