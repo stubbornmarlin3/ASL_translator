@@ -8,7 +8,7 @@ class Inception(torch.nn.Module):
     def __init__(self, in_ch:int, out_ch_1x1:int, out_ch_3x3_reduce:int, out_ch_3x3:int, out_ch_5x5_reduce:int, out_ch_5x5:int):
         super().__init__()
 
-        self.relu = torch.nn.ReLU()
+        self.relu = torch.nn.LeakyReLU()
 
         self.conv_1x1 = torch.nn.Conv3d(in_ch, out_ch_1x1, kernel_size=1)
         
