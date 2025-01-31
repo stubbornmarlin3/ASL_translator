@@ -352,7 +352,7 @@ class Dataloader:
         if not batchVideos:
             raise StopIteration
         
-        return (torch.stack(batchVideos), torch.tensor(batchLabels))
+        return (torch.stack(batchVideos), torch.tensor(batchLabels, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")))
 
 
 if __name__ == "__main__":
