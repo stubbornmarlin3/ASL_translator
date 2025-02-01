@@ -18,12 +18,13 @@ class ASLModel:
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
+        self.writer = SummaryWriter()
+        
 
         if not os.path.exists(self.savePath):
             os.mkdir(self.savePath)
 
-
-    def test(self, validation:bool=False):
+    def test(self, validation:bool=False, epoch:int=None):
         if validation:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_val.json", "./Valid"), self.subset, self.batchSize, self.flow)
         else:
@@ -38,6 +39,9 @@ class ASLModel:
                 pred = self.model(X)
                 # Calculate loss
                 loss = self.lossFunc(pred, y)
+                if validation:
+                    self.writer.add_scalar(f'Loss/valid', loss, epoch)
+
 
                 # Save average loss and number of correct predictions
                 avgLoss.append(loss)
@@ -50,11 +54,12 @@ class ASLModel:
         # Save model if validating    
         if validation:
             torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.i3d")
+            self.writer.add_scalar("Epoch/avgLoss", avgLoss, epoch)
+            self.writer.add_scalar("Epoch/accuracy", accuracy, epoch)
         print(f" | Average Loss: {avgLoss:.6f} | Accuracy: {accuracy:.3f}%")
 
 
     def train(self, numEpochs:int=1):
-        writer = SummaryWriter()
 
         for epoch in range(numEpochs):
             print(f"--- Epoch {epoch+1} ---")
@@ -63,41 +68,43 @@ class ASLModel:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
                 
-                with torch.amp.autocast(device_type="cuda"):
+                with torch.autograd.detect_anomaly(True):
                     # Get predictions
                     assert torch.isfinite(X).all(), "Missing values"
                     pred = self.model(X)
                     # Calculate loss
                     loss = self.lossFunc(pred, y)
-                    print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
+                    self.writer.add_scalar(f'Loss/train', loss, epoch)
+
+                    # print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
                     assert not torch.isnan(loss).any(), "NaN detected in loss"
 
-                # Back prop and optimize
-                self.scaler.scale(loss).backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                    # Back prop and optimize
+                    self.scaler.scale(loss).backward()
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
-                # for name, param in self.model.named_parameters():
-                #     print(f"{name} - {param.grad}")
+                    # for name, param in self.model.named_parameters():
+                    #     print(f"{name} - {param.grad}")
 
-                try:
-                    for name, param in self.model.named_parameters():
-                        writer.add_histogram(f'gradients/{name}', param.grad, epoch)
-                except:
-                    print("NaN Found")
-                
+                    try:
+                        for name, param in self.model.named_parameters():
+                            self.writer.add_histogram(f'Grad/{name}', param.grad, epoch)
+                    except:
+                        print("NaN Found")
+                    
 
-                self.scaler.step(self.optim)
-                self.scaler.update()
-                self.optim.zero_grad()
+                    self.scaler.step(self.optim)
+                    self.scaler.update()
+                    self.optim.zero_grad()
 
                 print(f"\rTraining: {dataloader.currentIndex / len(dataloader) * 100:.3f}% | Batch: {batch} | Loss: {loss.item():.6f}", end="", flush=True)
             # Print newline
             print()
             # Run test on validation set
-            self.test(validation=True)
+            self.test(validation=True, epoch=epoch)
 
-        writer.close()
+        self.writer.close()
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=1, subset=1000)
+    model = ASLModel("./Models", batchSize=1, subset=10)
     model.train(numEpochs=10)
