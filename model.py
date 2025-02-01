@@ -20,6 +20,7 @@ class ASLModel:
         self.flow = flow
         self.writer = SummaryWriter()
         
+        self.writer.add_graph(self.model, torch.stack([Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"))[0][0]]))
 
         if not os.path.exists(self.savePath):
             os.mkdir(self.savePath)
@@ -40,7 +41,7 @@ class ASLModel:
                 # Calculate loss
                 loss = self.lossFunc(pred, y)
                 if validation:
-                    self.writer.add_scalar(f'Loss/valid', loss, epoch)
+                    self.writer.add_scalar("Loss/valid", loss, epoch)
 
 
                 # Save average loss and number of correct predictions
@@ -69,30 +70,24 @@ class ASLModel:
             for batch, (X, y) in enumerate(dataloader):
                 
                 with torch.autograd.detect_anomaly(True):
-                    # Get predictions
-                    assert torch.isfinite(X).all(), "Missing values"
-                    pred = self.model(X)
-                    # Calculate loss
-                    loss = self.lossFunc(pred, y)
-                    self.writer.add_scalar(f'Loss/train', loss, epoch)
+                    with torch.amp.autocast("cuda"):
+                        # Get predictions
+                        pred = self.model(X)
+                        # Calculate loss
+                        loss = self.lossFunc(pred, y)
 
-                    # print(f"Predicted: {pred.argmax(1)} | Actual: {y}")
-                    assert not torch.isnan(loss).any(), "NaN detected in loss"
+                    self.writer.add_scalar("Loss/train", loss, epoch)
 
                     # Back prop and optimize
                     self.scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
-                    # for name, param in self.model.named_parameters():
-                    #     print(f"{name} - {param.grad}")
-
                     try:
                         for name, param in self.model.named_parameters():
-                            self.writer.add_histogram(f'Grad/{name}', param.grad, epoch)
+                            self.writer.add_histogram(f"Grad/{name}", param.grad, epoch)
                     except:
-                        print("NaN Found")
+                        pass
                     
-
                     self.scaler.step(self.optim)
                     self.scaler.update()
                     self.optim.zero_grad()

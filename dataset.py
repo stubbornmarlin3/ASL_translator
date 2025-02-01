@@ -292,7 +292,7 @@ class Dataset:
         print("\n0", end="") # Print 0 for bash exit condition
 
 class Dataloader:
-    def __init__(self, dataset:Dataset, subset:int, batchSize:int=1, flow:bool=False):
+    def __init__(self, dataset:Dataset, subset:int=1000, batchSize:int=1, flow:bool=False):
         self.dataset = dataset
         self.subset = subset
         self.batchSize = batchSize
