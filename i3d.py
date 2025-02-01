@@ -8,8 +8,6 @@ class Inception(torch.nn.Module):
     def __init__(self, in_ch:int, out_ch_1x1:int, out_ch_3x3_reduce:int, out_ch_3x3:int, out_ch_5x5_reduce:int, out_ch_5x5:int):
         super().__init__()
 
-        self.relu = torch.nn.LeakyReLU()
-
         self.conv_1x1 = torch.nn.Conv3d(in_ch, out_ch_1x1, kernel_size=1)
         
         self.conv_3x3_reduce = torch.nn.Conv3d(in_ch, out_ch_3x3_reduce, kernel_size=1)
@@ -23,13 +21,13 @@ class Inception(torch.nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
 
-        conv_1x1 = self.relu(self.conv_1x1(input))
+        conv_1x1 = torch.nn.functional.relu(self.conv_1x1(input))
 
-        conv_3x3_reduce = self.relu(self.conv_3x3_reduce(input))
-        conv_3x3 = self.relu(self.conv_3x3(conv_3x3_reduce))
+        conv_3x3_reduce = torch.nn.functional.relu(self.conv_3x3_reduce(input))
+        conv_3x3 = torch.nn.functional.relu(self.conv_3x3(conv_3x3_reduce))
 
-        conv_5x5_reduce = self.relu(self.conv_5x5_reduce(input))
-        conv_5x5 = self.relu(self.conv_5x5(conv_5x5_reduce))
+        conv_5x5_reduce = torch.nn.functional.relu(self.conv_5x5_reduce(input))
+        conv_5x5 = torch.nn.functional.relu(self.conv_5x5(conv_5x5_reduce))
 
         return torch.cat((conv_1x1, conv_3x3, conv_5x5), dim=1)
 
@@ -38,8 +36,6 @@ class I3D(torch.nn.Module):
 
     def __init__(self, classes:int):
         super().__init__()
-
-        self.relu = torch.nn.ReLU()
 
         self.conv0 = torch.nn.Conv3d(3, 64, kernel_size=7, stride=2)
 
@@ -77,9 +73,9 @@ class I3D(torch.nn.Module):
 
     def forward(self, input:torch.Tensor) -> torch.Tensor:
 
-        conv0 = self.relu(self.conv0(input))
+        conv0 = torch.nn.functional.relu(self.conv0(input))
         pool0 = self.pool0(conv0)
-        conv1 = self.relu(self.conv1(pool0))
+        conv1 = torch.nn.functional.relu(self.conv1(pool0))
         pool1 = self.pool1(conv1)
         inc0 = self.inc0(pool1)
         inc1 = self.inc1(inc0)
