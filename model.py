@@ -41,7 +41,7 @@ class ASLModel:
                 # Calculate loss
                 loss = self.lossFunc(pred, y)
                 if validation:
-                    self.writer.add_scalar("Loss/valid", loss, epoch)
+                    self.writer.add_scalar("Valid/loss", loss, epoch)
 
 
                 # Save average loss and number of correct predictions
@@ -55,8 +55,7 @@ class ASLModel:
         # Save model if validating    
         if validation:
             torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.i3d")
-            self.writer.add_scalar("Epoch/avgLoss", avgLoss, epoch)
-            self.writer.add_scalar("Epoch/accuracy", accuracy, epoch)
+            self.writer.add_scalar("Valid/accuracy", accuracy, epoch)
         print(f" | Average Loss: {avgLoss:.6f} | Accuracy: {accuracy:.3f}%")
 
 
@@ -68,17 +67,17 @@ class ASLModel:
 
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
-                
                 with torch.autograd.detect_anomaly(True):
-                    with torch.amp.autocast("cuda"):
+                    with torch.amp.autocast("cuda", enabled=False):
                         # Get predictions
                         pred = self.model(X)
                         # Calculate loss
                         loss = self.lossFunc(pred, y)
 
-                    self.writer.add_scalar("Loss/train", loss, epoch)
+                    self.writer.add_scalar("Train/loss", loss, epoch)
 
                     # Back prop and optimize
+                    self.optim.zero_grad()
                     self.scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
@@ -90,7 +89,6 @@ class ASLModel:
                     
                     self.scaler.step(self.optim)
                     self.scaler.update()
-                    self.optim.zero_grad()
 
                 print(f"\rTraining: {dataloader.currentIndex / len(dataloader) * 100:.3f}% | Batch: {batch} | Loss: {loss.item():.6f}", end="", flush=True)
             # Print newline
