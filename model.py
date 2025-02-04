@@ -1,5 +1,5 @@
 from dataset import Dataloader, Dataset
-from test import ASL
+from asl import ASL
 import torch
 import os
 from datetime import datetime
@@ -97,7 +97,7 @@ class ASLModel:
                 if recordGrad:
                     try:
                         for name, param in self.model.named_parameters():
-                            self.writer.add_histogram(f"Epoch {epoch}", param.grad, batch)
+                            self.writer.add_histogram(f"Epoch {epoch}/grad_{name}", param.grad, batch)
                     except:
                         pass
                 
