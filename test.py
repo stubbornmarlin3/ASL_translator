@@ -5,9 +5,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 import torchvision.transforms as transforms
 
-class I3D(nn.Module):
+class ASL(nn.Module):
     def __init__(self, num_classes=100):
-        super(I3D, self).__init__()
+        super(ASL, self).__init__()
         
         self.conv1 = nn.Conv3d(3, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3))
         self.bn1 = nn.BatchNorm3d(64)
