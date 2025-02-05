@@ -19,8 +19,8 @@ class ASLModel:
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
-        self.optim = torch.optim.Adam(self.model.parameters(), lr=1e-3)
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=10)
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.01)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, 10, 0.1)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
@@ -77,7 +77,7 @@ class ASLModel:
             correct = []
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
             for batch, (X, y) in enumerate(dataloader):
-                with torch.amp.autocast("cuda", enabled=False):
+                with torch.amp.autocast("cuda", enabled=True):
                     # Get predictions
                     pred = self.model(X)
                     # Calculate loss

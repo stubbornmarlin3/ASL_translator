@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import torch
 from torchcodec.decoders import VideoDecoder
+import torchvision
 import random
 
 class loggerOutputs:
@@ -87,8 +88,15 @@ class Sample:
             num = random.randint(0,max(0,frames.size(0)-64))    # To prevent index errors
             frames = frames[num:num+64]
   
-        # Permute to get [channels, frames, width, height] and then normalize pixel values
-        return frames.permute(1,0,2,3) / 255.0
+        # Randomly flip videos since ASL is symmetric
+        if random.choice([True, False]):
+            frames = frames.flip(-1)
+
+        # Apply some color jitter to the frames and permute to get [channels, frames, width, height] and normalize pixel values
+        colorJitter = torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05)
+        frames = torch.stack([colorJitter(frame) for frame in frames], dim=1) / 255.0
+
+        return frames
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
         """
@@ -360,7 +368,11 @@ class Dataloader:
 
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
-    dataset.download()
+    video = Dataloader(dataset)[3][0]
+    frame = video[:,0,:,:].permute(1,2,0).numpy()
+    cv2.imshow("Frame", frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     # e = dataset.entries
     # sample = Sample(17000, e[17000], "./Train")    
     # print(sample.load())
