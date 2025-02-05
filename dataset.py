@@ -2,6 +2,7 @@
 # Aidan Carter
 # ASL Interpreter
 
+import torchvision.transforms.functional
 from yt_dlp import YoutubeDL, DownloadError
 from json import loads
 import os
@@ -71,6 +72,7 @@ class Sample:
         """
         Returns a tensor of normalized pixel values from the downloaded and processed video.\n
         Tensor will be in shape [3, 64, 224, 224] with the 64 frames being contiguous but from random start point\n
+        Videos will have random flip and color jitter as well\n
         Will return values from the RGB processed video by default.\n
         If flow is True, will return optical flow frames instead.\n
         """
