@@ -105,7 +105,8 @@ class Sample:
         if random.choice([True, False]):
             frames = frames.flip(-1)
 
-        return frames
+        # Normalize values
+        return frames / 255.0
 
     def downloadVideo(self, retryAttempts:int=3) -> None:
         """
