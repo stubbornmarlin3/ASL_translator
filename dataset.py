@@ -74,29 +74,36 @@ class Sample:
         Tensor will be in shape [3, 64, 224, 224] with the 64 frames being contiguous but from random start point\n
         Videos will have random flip and color jitter as well\n
         Will return values from the RGB processed video by default.\n
-        If flow is True, will return optical flow frames instead.\n
+        If flow is True, will return optical flow frames as well [6, 64, 224, 224].\n
         """
 
         # Make decoder for video
-        decoder = VideoDecoder(f"{self.savePath}/Videos/{self.index}_{'flow' if flow else 'rgb'}.mp4", device=('cuda' if torch.cuda.is_available() else 'cpu'))
+        decoderRGB = VideoDecoder(f"{self.savePath}/Videos/{self.index}_flow.mp4", device=('cuda' if torch.cuda.is_available() else 'cpu'))
 
         # Make tensor of all frames decoded
-        frames = decoder[:]
+        frames = decoderRGB[:]
+
+        # Apply some color jitter to the frames and permute to get [channels, frames, width, height] and normalize pixel values
+        colorJitter = torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05)
+        frames = torch.stack([colorJitter(frame) for frame in frames], dim=1)
+
+        if flow:
+            decoderFlow = VideoDecoder(f"{self.savePath}/Videos/{self.index}_flow.mp4", device=('cuda' if torch.cuda.is_available() else 'cpu'))
+            framesFlow = decoderFlow[:].permute(1,0,2,3)
+            # Concat channels to include optical flow with RGB
+            frames = torch.cat((frames, framesFlow), dim=0)
+
         # If less than 64 frames, extend last frame to get to 64 frames
         # Otherwise select a 64 frame clip from the video at random
-        if frames.size(0) < 64:
-            frames = torch.cat((frames, frames[-1].repeat(64-frames.size(0),1,1,1)))
+        if frames.size(1) < 64:
+            frames = torch.cat((frames, frames[:, -1:, :, :].repeat(1, 64-frames.size(1), 1, 1)), dim=1)
         else:
-            num = random.randint(0,max(0,frames.size(0)-64))    # To prevent index errors
-            frames = frames[num:num+64]
+            num = random.randint(0,max(0,frames.size(1)-64))    # To prevent index errors
+            frames = frames[:, num:num+64, :, :]
   
         # Randomly flip videos since ASL is symmetric
         if random.choice([True, False]):
             frames = frames.flip(-1)
-
-        # Apply some color jitter to the frames and permute to get [channels, frames, width, height] and normalize pixel values
-        colorJitter = torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05)
-        frames = torch.stack([colorJitter(frame) for frame in frames], dim=1) / 255.0
 
         return frames
 
@@ -370,7 +377,7 @@ class Dataloader:
 
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
-    video = Dataloader(dataset)[3][0]
+    video = Dataloader(dataset, flow=True)[25][0]
     frame = video[:,0,:,:].permute(1,2,0).numpy()
     cv2.imshow("Frame", frame)
     cv2.waitKey(0)

@@ -1,10 +1,10 @@
 import torch
 
 class ASL(torch.nn.Module):
-    def __init__(self, classes:int=10):
+    def __init__(self, classes:int=10, in_channels:int=3):
         super(ASL, self).__init__()
 
-        self.conv1 = torch.nn.Conv3d(3, 32, kernel_size=(3,7,7), stride=(1,2,2), padding=(1,3,3))
+        self.conv1 = torch.nn.Conv3d(in_channels, 32, kernel_size=(3,7,7), stride=(1,2,2), padding=(1,3,3))
         self.bn1 = torch.nn.BatchNorm3d(32)
         self.pool1 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
 

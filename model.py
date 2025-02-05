@@ -15,7 +15,7 @@ class ASLModel:
     def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.subset = subset
         self.batchSize = batchSize
-        self.model = ASL(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.model = ASL(subset, 6 if flow else 3).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
@@ -120,4 +120,4 @@ class ASLModel:
 
 if __name__ == "__main__":
     model = ASLModel("./Models", batchSize=4, subset=10, flow=True)
-    model.train(numEpochs=100)
+    model.train(numEpochs=50)
