@@ -4,20 +4,20 @@ class ASL(torch.nn.Module):
     def __init__(self, classes:int=10, in_channels:int=3):
         super(ASL, self).__init__()
 
-        self.conv1 = torch.nn.Conv3d(in_channels, 64, kernel_size=(3,7,7), stride=(1,2,2), padding=(1,3,3))
+        self.conv1 = torch.nn.Conv3d(in_channels, 64, kernel_size=(1,7,7), stride=(1,2,2), padding=(0,3,3))
         self.bn1 = torch.nn.BatchNorm3d(64)
         self.pool1 = torch.nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
 
-        self.conv2 = torch.nn.Conv3d(64, 128, kernel_size=3, stride=1, padding=1)
+        self.conv2 = torch.nn.Conv3d(64, 128, kernel_size=(1,3,3), stride=1, padding=(0,1,1))
         self.bn2 = torch.nn.BatchNorm3d(128)
-        self.pool2 = torch.nn.MaxPool3d(kernel_size=2, stride=2)
+        self.pool2 = torch.nn.MaxPool3d(kernel_size=(1,2,2), stride=(1,2,2))
 
-        self.conv3 = torch.nn.Conv3d(128, 256, kernel_size=3, stride=1, padding=1)
+        self.conv3 = torch.nn.Conv3d(128, 256, kernel_size=(1,3,3), stride=1, padding=(0,1,1))
         self.bn3 = torch.nn.BatchNorm3d(256)
 
-        self.conv4 = torch.nn.Conv3d(256, 512, kernel_size=3, stride=1, padding=1)
+        self.conv4 = torch.nn.Conv3d(256, 512, kernel_size=(1,3,3), stride=1, padding=(0,1,1))
         self.bn4 = torch.nn.BatchNorm3d(512)
-        self.pool3 = torch.nn.AdaptiveAvgPool3d(1)
+        self.pool3 = torch.nn.AdaptiveAvgPool3d((None,1,1))
 
         # LSTM Layer (Takes sequence of features per frame)
         self.lstm = torch.nn.LSTM(input_size=512, hidden_size=256, num_layers=2, batch_first=True)
@@ -47,8 +47,11 @@ class ASL(torch.nn.Module):
         x = torch.nn.functional.relu(x, inplace=True)
         x = self.pool3(x)
 
+        print(x.size())
         # Reshape for LSTM (batch, frames, features)
-        x = x.view(batch_size, F, -1)  # Shape: [B, Frames, 512]
+        x = x.view(batch_size, F, 512)  # Shape: [B, Frames, 512]
+        print(x.size())
+
 
         # Pass through LSTM
         lstm_out, _ = self.lstm(x)  # Shape: [B, Frames, hidden_size]
@@ -60,3 +63,8 @@ class ASL(torch.nn.Module):
         x = self.drop(x)
         x = self.fc(x)
         return x
+
+if __name__ == "__main__":
+    x = torch.randn((1,3,64,224,224))
+    model = ASL(10, 3)
+    model(x)
