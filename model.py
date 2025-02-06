@@ -124,5 +124,5 @@ class ASLModel:
         self.writer.close()
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=4, subset=10, flow=True, loadClassWeight="classWeights.pt")
+    model = ASLModel("./Models", batchSize=4, subset=10, flow=True, loadClassWeight="./Train/classWeights.pt")
     model.train(numEpochs=50)
