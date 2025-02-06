@@ -44,15 +44,6 @@ class ASL(torch.nn.Module):
         x = torch.nn.functional.relu(x)
         x = self.pool3(x)
 
-        # Reshape for LSTM (batch, frames, features)
-        x = x.view(batch_size, F, 512)  # Shape: [B, Frames, 512]
-
-        # Pass through LSTM
-        lstm_out, _ = self.lstm(x)  # Shape: [B, Frames, hidden_size]
-
-        # Take the last frame's LSTM output
-        x = lstm_out[:, -1, :]  # Shape: [B, hidden_size]
-
         x = x.view(x.size(0), -1)
         x = self.drop(x)
         x = self.fc(x)
