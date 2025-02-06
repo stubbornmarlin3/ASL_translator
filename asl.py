@@ -22,7 +22,7 @@ class ASL(torch.nn.Module):
         # LSTM Layer (Takes sequence of features per frame)
         self.lstm = torch.nn.LSTM(input_size=512, hidden_size=256, num_layers=2, batch_first=True)
 
-        self.drop = torch.nn.Dropout(p=0.4, inplace=True)
+        self.drop = torch.nn.Dropout(p=0.4)
         self.fc = torch.nn.Linear(256, classes)
 
     def forward(self, x):
@@ -30,21 +30,21 @@ class ASL(torch.nn.Module):
 
         x = self.conv1(x)
         x = self.bn1(x)
-        x = torch.nn.functional.relu(x, inplace=True)
+        x = torch.nn.functional.relu(x)
         x = self.pool1(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
-        x = torch.nn.functional.relu(x, inplace=True)
+        x = torch.nn.functional.relu(x)
         x = self.pool2(x)
 
         x = self.conv3(x)
         x = self.bn3(x)
-        x = torch.nn.functional.relu(x, inplace=True)
+        x = torch.nn.functional.relu(x)
 
         x = self.conv4(x)
         x = self.bn4(x)
-        x = torch.nn.functional.relu(x, inplace=True)
+        x = torch.nn.functional.relu(x)
         x = self.pool3(x)
 
         print(x.size())
