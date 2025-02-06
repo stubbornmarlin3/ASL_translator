@@ -21,7 +21,7 @@ class ASLModel:
             self.model.load_state_dict(torch.load(f"{loadModelName}", weights_only=True))
         if loadClassWeight != None:
             with open(f"{loadClassWeight}", "rb") as f:
-                classWeights = torch.load(f).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                classWeights = torch.load(f)[:subset].to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         else:
             classWeights = None
         self.lossFunc = torch.nn.CrossEntropyLoss(weight=classWeights)
