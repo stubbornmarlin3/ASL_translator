@@ -19,8 +19,11 @@ class ASL(torch.nn.Module):
         self.bn4 = torch.nn.BatchNorm3d(512)
         self.pool3 = torch.nn.AdaptiveAvgPool3d(1)
 
+        # LSTM Layer (Takes sequence of features per frame)
+        self.lstm = torch.nn.LSTM(input_size=512, hidden_size=256, num_layers=2, batch_first=True)
+
         self.drop = torch.nn.Dropout(p=0.4, inplace=True)
-        self.fc = torch.nn.Linear(512, classes)
+        self.fc = torch.nn.Linear(256, classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -41,6 +44,12 @@ class ASL(torch.nn.Module):
         x = self.bn4(x)
         x = torch.nn.functional.relu(x, inplace=True)
         x = self.pool3(x)
+
+        # Pass through LSTM
+        lstm_out, _ = self.lstm(x)  # Shape: [B, Frames, hidden_size]
+
+        # Take the last frame's LSTM output
+        x = lstm_out[:, -1, :]  # Shape: [B, hidden_size]
 
         x = x.view(x.size(0), -1)
         x = self.drop(x)
