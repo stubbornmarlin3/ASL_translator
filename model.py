@@ -18,9 +18,9 @@ class ASLModel:
         self.batchSize = batchSize
         self.model = ASL(subset, 6 if flow else 3).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
-            self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
+            self.model.load_state_dict(torch.load(f"{loadModelName}", weights_only=True))
         if loadClassWeight != None:
-            with open(f"{self.savePath}/{loadClassWeight}", "rb") as f:
+            with open(f"{loadClassWeight}", "rb") as f:
                 classWeights = torch.load(f)
         else:
             classWeights = None
