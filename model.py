@@ -12,17 +12,22 @@ recordModel = "--model" in sys.argv
 
 
 class ASLModel:
-    def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
+    def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadClassWeight:str=None, loadModelName:str=None):
+        self.savePath = savePath
         self.subset = subset
         self.batchSize = batchSize
         self.model = ASL(subset, 6 if flow else 3).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
-        self.lossFunc = torch.nn.CrossEntropyLoss()
+        if loadClassWeight != None:
+            with open(f"{self.savePath}/{loadClassWeight}", "rb") as f:
+                classWeights = torch.load(f)
+        else:
+            classWeights = None
+        self.lossFunc = torch.nn.CrossEntropyLoss(weight=classWeights)
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=1e-4)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, 10, 0.1)
         self.scaler = torch.amp.GradScaler()
-        self.savePath = savePath
         self.flow = flow
         if recordGrad or recordLoss or recordModel:
             self.writer = SummaryWriter()
