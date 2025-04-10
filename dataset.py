@@ -93,8 +93,9 @@ class Sample:
         if train:
 
             # Apply a series of spacial augmentations
-            # This includes random flips, color jitter and slight rotations
+            # This includes random flips (20% of the time since most people are right handed), color jitter, slight rotations, and some blur
             augments = torchvision.transforms.Compose([
+                torchvision.transforms.RandomHorizontalFlip(0.1),
                 torchvision.transforms.RandomRotation(5),
                 torchvision.transforms.ColorJitter(0.2, 0.2, 0.2, 0.05),
             ])
@@ -315,6 +316,7 @@ class Dataloader:
         self.batchSize = batchSize
         self.flow = flow
         self.currentIndex = 0
+        self.shuffledIndices = torch.randperm(len(self.dataset.entries))
         self.train = False
 
     def __len__(self):
@@ -359,7 +361,7 @@ class Dataloader:
         batchLabels = []
         while len(batchVideos) < self.batchSize and self.currentIndex < len(self.dataset.entries):
             # Load video
-            item = self.__getitem__(self.currentIndex)
+            item = self.__getitem__(self.shuffledIndices[self.currentIndex])
             # Increment index
             self.currentIndex+=1
             # If no video to load, then just get next video
@@ -378,8 +380,8 @@ class Dataloader:
 
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
-    loader = Dataloader(dataset, flow=True)
-    loader.train = False
+    loader = Dataloader(dataset, flow=False)
+    loader.train = True
     video = loader[3][0]
     for i in range(64):
         frame = video[:,i,:,:].permute(1,2,0).numpy()

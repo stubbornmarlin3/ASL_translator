@@ -29,7 +29,9 @@ class ASLModel:
             self.writer = SummaryWriter()
         
         if recordModel:
-            self.writer.add_graph(self.model, torch.stack([Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"))[0][0]]))
+            dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
+            indices = torch.arange(len(dataset.entries))
+            self.writer.add_graph(self.model, torch.stack([Dataloader(dataset, indices)[0][0]]))
 
         if not os.path.exists(self.savePath):
             os.mkdir(self.savePath)
