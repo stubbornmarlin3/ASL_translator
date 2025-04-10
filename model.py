@@ -13,6 +13,7 @@ recordModel = "--model" in sys.argv
 
 class ASLModel:
     def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
+        self.max_acc = 0.0
         self.subset = subset
         self.batchSize = batchSize
         self.model = ASL(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
@@ -60,8 +61,10 @@ class ASLModel:
         print()
         # Save model if validating    
         if validation:
-            accuracy = correct.count(True) / len(correct) * 100       
-            torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.ASL")
+            accuracy = correct.count(True) / len(correct) * 100   
+            if accuracy > self.max_acc:   
+                self.max_acc = accuracy 
+                torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.ASL")
             if recordLoss:
                 avgLoss = sum(avgLoss) / len(avgLoss)
                 self.writer.add_scalar(f"Valid/accuracy", accuracy, epoch)
@@ -76,6 +79,7 @@ class ASLModel:
             avgLoss = []
             correct = []
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"), self.subset, self.batchSize, self.flow)
+            dataloader.train = True
             for batch, (X, y) in enumerate(dataloader):
                 with torch.amp.autocast("cuda", enabled=True):
                     # Get predictions

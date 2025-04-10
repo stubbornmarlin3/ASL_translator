@@ -68,7 +68,7 @@ class Sample:
         "Returns the label from the sample"
         return self.entry["label"]
     
-    def load(self, flow:bool=False) -> torch.Tensor:
+    def load(self, train:bool, flow:bool=False) -> torch.Tensor:
         """
         Returns a tensor of normalized pixel values from the downloaded and processed video.\n
         Tensor will be in shape [3, 64, 224, 224] with the 64 frames being contiguous but from random start point\n
@@ -90,13 +90,20 @@ class Sample:
             num = random.randint(0,max(0,frames.size(0)-64))    # To prevent index errors
             frames = frames[num:num+64]
   
-        # Randomly flip videos since ASL is symmetric
-        if random.choice([True, False]):
-            frames = frames.flip(-1)
+        if train:
 
-        # Apply some color jitter to the frames and permute to get [channels, frames, width, height] and normalize pixel values
-        colorJitter = torchvision.transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05)
-        frames = torch.stack([colorJitter(frame) for frame in frames], dim=1) / 255.0
+            # Apply a series of spacial augmentations
+            # This includes random flips, color jitter and slight rotations
+            augments = torchvision.transforms.Compose([
+                torchvision.transforms.RandomRotation(5),
+                torchvision.transforms.ColorJitter(0.2, 0.2, 0.2, 0.05),
+            ])
+
+            # Apply augments to each frame and normalize pixel values
+            frames = torch.stack([augments(frame) for frame in frames], dim=1) / 255.0
+
+        else:
+            frames = torch.stack([frame for frame in frames], dim=1) / 255.0
 
         return frames
 
@@ -308,6 +315,7 @@ class Dataloader:
         self.batchSize = batchSize
         self.flow = flow
         self.currentIndex = 0
+        self.train = False
 
     def __len__(self):
         return len(self.dataset.entries)
@@ -324,7 +332,7 @@ class Dataloader:
             # Try to make and load sample
             sample = Sample(index, self.dataset.entries[index], self.dataset.savePath)
             if sample.getLabel() < self.subset:
-                return (sample.load(self.flow), sample.getLabel())
+                return (sample.load(train=self.train, flow=self.flow), sample.getLabel())
             else:
                 return None
         except IndexError:
@@ -370,10 +378,13 @@ class Dataloader:
 
 if __name__ == "__main__":
     dataset = Dataset("./MS-ASL/MSASL_val.json", "./Valid")
-    video = Dataloader(dataset)[3][0]
-    frame = video[:,0,:,:].permute(1,2,0).numpy()
-    cv2.imshow("Frame", frame)
-    cv2.waitKey(0)
+    loader = Dataloader(dataset, flow=True)
+    loader.train = False
+    video = loader[3][0]
+    for i in range(64):
+        frame = video[:,i,:,:].permute(1,2,0).numpy()
+        cv2.imshow("Frame", frame)
+        cv2.waitKey(0)
     cv2.destroyAllWindows()
     # e = dataset.entries
     # sample = Sample(17000, e[17000], "./Train")    

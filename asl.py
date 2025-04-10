@@ -46,3 +46,12 @@ class ASL(torch.nn.Module):
         x = self.drop(x)
         x = self.fc(x)
         return x
+    
+if __name__ == "__main__":
+
+    x = torch.randn((1,3,64,224,224))
+    model = ASL()
+
+    y = model(x)
+
+    print(y.size())
