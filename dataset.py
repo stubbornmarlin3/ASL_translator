@@ -93,7 +93,7 @@ class Sample:
         if train:
 
             # Apply a series of spacial augmentations
-            # This includes random flips (20% of the time since most people are right handed), color jitter, slight rotations, and some blur
+            # This includes random flips (10% of the time since most people are right handed), color jitter, and som slight rotations
             augments = torchvision.transforms.Compose([
                 torchvision.transforms.RandomHorizontalFlip(0.1),
                 torchvision.transforms.RandomRotation(5),

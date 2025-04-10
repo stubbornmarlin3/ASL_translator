@@ -29,9 +29,7 @@ class ASLModel:
             self.writer = SummaryWriter()
         
         if recordModel:
-            dataset = Dataset("./MS-ASL/MSASL_train.json", "./Train")
-            indices = torch.arange(len(dataset.entries))
-            self.writer.add_graph(self.model, torch.stack([Dataloader(dataset, indices)[0][0]]))
+            self.writer.add_graph(self.model, torch.stack([Dataloader(Dataset("./MS-ASL/MSASL_train.json", "./Train"))[0][0]]))
 
         if not os.path.exists(self.savePath):
             os.mkdir(self.savePath)
@@ -53,7 +51,7 @@ class ASLModel:
                 loss = self.lossFunc(pred, y)
 
                 if recordLoss:
-                    self.writer.add_scalar(f"Epoch {epoch}/validLoss", loss, batch)
+                    self.writer.add_scalar(f"Epoch {epoch}/{'validLoss' if validation else 'testLoss'}", loss, batch)
 
                 # Save average loss and number of correct predictions
                 avgLoss.append(loss)
@@ -69,8 +67,8 @@ class ASLModel:
                 torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.ASL")
             if recordLoss:
                 avgLoss = sum(avgLoss) / len(avgLoss)
-                self.writer.add_scalar(f"Valid/accuracy", accuracy, epoch)
-                self.writer.add_scalar(f"Valid/loss", avgLoss, epoch)
+                self.writer.add_scalar(f"{'Valid/accuracy' if validation else 'Test/accuracy'}", accuracy, epoch)
+                self.writer.add_scalar(f"{'Valid/loss' if validation else 'Test/loss'}", avgLoss, epoch)
 
     def train(self, numEpochs:int=1):
 
