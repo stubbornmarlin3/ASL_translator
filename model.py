@@ -12,16 +12,17 @@ recordModel = "--model" in sys.argv
 
 
 class ASLModel:
-    def __init__(self, savePath:str, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
+    def __init__(self, savePath:str, numEpochs:int=1, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.max_acc = 0.0
         self.subset = subset
         self.batchSize = batchSize
+        self.numEpochs = numEpochs
         self.model = ASL(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
-        self.optim = torch.optim.AdamW(self.model.parameters(), lr=2e-3, weight_decay=0.01)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, 30, 0.5)
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.01)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-6)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
@@ -70,9 +71,9 @@ class ASLModel:
                 self.writer.add_scalar(f"{'Valid/accuracy' if validation else 'Test/accuracy'}", accuracy, epoch)
                 self.writer.add_scalar(f"{'Valid/loss' if validation else 'Test/loss'}", avgLoss, epoch)
 
-    def train(self, numEpochs:int=1):
+    def train(self):
 
-        for epoch in range(numEpochs):
+        for epoch in range(self.numEpochs):
             print(f"--- Epoch {epoch+1} ---")
             self.model.train()
 
@@ -125,5 +126,5 @@ class ASLModel:
             self.writer.close()
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", batchSize=4, subset=10, flow=True)
-    model.train(numEpochs=300)
+    model = ASLModel("./Models", numEpochs=300, batchSize=4, subset=10, flow=True)
+    model.train()
