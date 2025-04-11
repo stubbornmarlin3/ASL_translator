@@ -12,8 +12,9 @@ recordModel = "--model" in sys.argv
 
 
 class ASLModel:
-    def __init__(self, savePath:str, numEpochs:int=1, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
+    def __init__(self, savePath:str, numEpochs:int=None, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.max_acc = 0.0
+        self.bestModel = None
         self.subset = subset
         self.batchSize = batchSize
         self.numEpochs = numEpochs
@@ -54,8 +55,8 @@ class ASLModel:
                 # Calculate loss
                 loss = self.lossFunc(pred, y)
 
-                if recordLoss and epoch:
-                    self.writer.add_scalar(f"Epoch {epoch}/{'validLoss' if validation else 'testLoss'}", loss, batch)
+                if recordLoss and validation:
+                    self.writer.add_scalar(f"Epoch {epoch}/validLoss", loss, batch)
 
                 if not validation:
                     allPred.append(torch.argmax(pred, dim=1))
@@ -71,12 +72,13 @@ class ASLModel:
         if validation:
             accuracy = correct.count(True) / len(correct) * 100   
             if accuracy > self.max_acc:   
-                self.max_acc = accuracy 
-                torch.save(self.model.state_dict(), f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.ASL")
+                self.max_acc = accuracy
+                self.bestModel = f"{self.savePath}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{self.subset}_{f'{accuracy:.3f}'.replace('.','-')}_{'flow' if self.flow else 'rgb'}.ASL"
+                torch.save(self.model.state_dict(), self.bestModel)
             if recordLoss:
                 avgLoss = sum(avgLoss) / len(avgLoss)
-                self.writer.add_scalar(f"{'Valid/accuracy' if validation else 'Test/accuracy'}", accuracy, epoch)
-                self.writer.add_scalar(f"{'Valid/loss' if validation else 'Test/loss'}", avgLoss, epoch)
+                self.writer.add_scalar(f"Valid/accuracy", accuracy, epoch)
+                self.writer.add_scalar(f"Valid/loss", avgLoss, epoch)
         else:
             import matplotlib.pyplot as plt
             confusionMatrix = torch.zeros((self.subset, self.subset))
@@ -149,7 +151,11 @@ class ASLModel:
             
         if recordGrad or recordLoss or recordModel:
             self.writer.close()
+        
+        return self.bestModel
 
 if __name__ == "__main__":
     model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
-    model.train()
+    best = model.train()
+    model = ASLModel("./Models", subset=10, flow=True, loadModelName=best)
+    model.test()
