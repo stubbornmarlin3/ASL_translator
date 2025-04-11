@@ -151,5 +151,5 @@ class ASLModel:
             self.writer.close()
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", numEpochs=300, batchSize=4, subset=10, flow=True)
+    model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
     model.train()
