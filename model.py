@@ -40,10 +40,13 @@ class ASLModel:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_val.json", "./Valid"), self.subset, self.batchSize, self.flow)
         else:
             dataloader = Dataloader(Dataset("./MS-ASL/MSASL_test.json", "./Test"), self.subset, self.batchSize, self.flow)
+            allPred = []
+            allTruth = []
 
         self.model.eval()
         avgLoss = []
         correct = []
+
         with torch.no_grad():
             for batch, (X, y) in enumerate(dataloader):
                 # Make predictions
@@ -51,8 +54,12 @@ class ASLModel:
                 # Calculate loss
                 loss = self.lossFunc(pred, y)
 
-                if recordLoss:
+                if recordLoss and epoch:
                     self.writer.add_scalar(f"Epoch {epoch}/{'validLoss' if validation else 'testLoss'}", loss, batch)
+
+                if not validation:
+                    allPred.append(torch.argmax(pred, dim=1))
+                    allTruth.append(y)
 
                 # Save average loss and number of correct predictions
                 avgLoss.append(loss)
@@ -70,6 +77,24 @@ class ASLModel:
                 avgLoss = sum(avgLoss) / len(avgLoss)
                 self.writer.add_scalar(f"{'Valid/accuracy' if validation else 'Test/accuracy'}", accuracy, epoch)
                 self.writer.add_scalar(f"{'Valid/loss' if validation else 'Test/loss'}", avgLoss, epoch)
+        else:
+            import matplotlib.pyplot as plt
+            confusionMatrix = torch.zeros((self.subset, self.subset))
+            allPred = torch.cat(allPred)
+            allTruth = torch.cat(allTruth)
+            for i in range(self.subset):
+                indices = allTruth == i
+                count = torch.sum(indices).item()
+                assert count == allPred[indices].size(0)
+                arr = allPred[indices]
+                if count == 0:
+                    break
+                for j in range(self.subset):
+                    confusionMatrix[i,j] = torch.sum(arr == j).item() * 100.0 / count
+            plt.clf()
+            plt.matshow(confusionMatrix)
+            plt.savefig('confusionMatrix.png')
+
 
     def train(self):
 
@@ -126,5 +151,5 @@ class ASLModel:
             self.writer.close()
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", numEpochs=300, batchSize=4, subset=10, flow=True)
-    model.train()
+    model = ASLModel("./Models", numEpochs=300, batchSize=4, subset=1000, flow=True)
+    model.test()
