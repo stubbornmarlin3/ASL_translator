@@ -21,7 +21,7 @@ class ASLModel:
             self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=2e-3, weight_decay=0.01)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, 50, 0.5)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, 30, 0.5)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
