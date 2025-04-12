@@ -20,10 +20,10 @@ class ASLModel:
         self.numEpochs = numEpochs
         self.model = ASL(subset).to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if loadModelName != None:
-            self.model.load_state_dict(torch.load(f"{savePath}/{loadModelName}", weights_only=True))
+            self.model.load_state_dict(torch.load(loadModelName, weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.01)
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-6)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-7)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
