@@ -22,7 +22,7 @@ class ASLModel:
         if loadModelName != None:
             self.model.load_state_dict(torch.load(loadModelName, weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
-        self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.01)
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.001)
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-8)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
