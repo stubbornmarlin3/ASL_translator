@@ -23,7 +23,7 @@ class ASLModel:
             self.model.load_state_dict(torch.load(loadModelName, weights_only=True))
         self.lossFunc = torch.nn.CrossEntropyLoss()
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=0.001)
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-6)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=self.numEpochs, eta_min=1e-8)
         self.scaler = torch.amp.GradScaler()
         self.savePath = savePath
         self.flow = flow
@@ -124,6 +124,8 @@ class ASLModel:
                 # Back prop and optimize
                 self.optim.zero_grad()
                 self.scaler.scale(loss).backward()
+
+                self.scaler.unscale_(self.optim)
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
                 if recordGrad:
@@ -155,7 +157,7 @@ class ASLModel:
         return self.bestModel
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", numEpochs=300, batchSize=4, subset=10, flow=True)
+    model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
     best = model.train()
     model = ASLModel("./Models", subset=10, flow=True, loadModelName=best)
     model.test()
