@@ -1,7 +1,5 @@
-from asl import ASL
-from i3d import I3D
 import torch
+from asl import ASL
 
-model = ASL(10)
-
-print(sum(p.numel() for p in model.parameters()))
+model = ASL()
+optim = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.01)
