@@ -14,7 +14,7 @@ recordModel = "--model" in sys.argv
 
 
 class ASLModel:
-    def __init__(self, savePath:str, numEpochs:int=None, batchSize:int=10, subset:int=1000, flow:bool=False, loadModelName:str=None):
+    def __init__(self, savePath:str, numEpochs:int=None, batchSize:int=1, subset:int=1000, flow:bool=False, loadModelName:str=None):
         self.max_acc = 0.0
         self.bestModel = None
         self.subset = subset
