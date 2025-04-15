@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 import sys
+import matplotlib.pyplot as plt
+from json import loads
 
 recordGrad = "--grad" in sys.argv
 recordLoss = "--loss" in sys.argv
@@ -80,7 +82,7 @@ class ASLModel:
                 self.writer.add_scalar(f"Valid/accuracy", accuracy, epoch)
                 self.writer.add_scalar(f"Valid/loss", avgLoss, epoch)
         else:
-            import matplotlib.pyplot as plt
+            
             confusionMatrix = torch.zeros((self.subset, self.subset))
             allPred = torch.cat(allPred)
             allTruth = torch.cat(allTruth)
@@ -93,8 +95,26 @@ class ASLModel:
                     break
                 for j in range(self.subset):
                     confusionMatrix[i,j] = torch.sum(arr == j).item() * 100.0 / count
+
             plt.clf()
-            plt.matshow(confusionMatrix)
+            plt.figure(figsize=(10,8))
+            plt.matshow(confusionMatrix, cmap="viridis", fignum=1)
+            plt.colorbar()
+
+                    # Add values
+            for i in range(self.subset):
+                for j in range(self.subset):
+                    value = confusionMatrix[i, j].item()
+                    plt.text(j, i, f'{value:.1f}%', ha='center', va='center', color='white' if value > 50 else 'black')
+            # Add index labels
+
+            with open("./MS-ASL/MSASL_classes.json") as f:
+                labels = f.read()
+            plt.xticks(ticks=range(self.subset), labels=loads(labels)[:self.subset])
+            plt.yticks(ticks=range(self.subset), labels=range(self.subset))
+            plt.xlabel("Predicted")
+            plt.ylabel("Actual")
+            plt.title("Confusion Matrix")
             plt.savefig('confusionMatrix.png')
 
 
@@ -157,7 +177,7 @@ class ASLModel:
         return self.bestModel
 
 if __name__ == "__main__":
-    model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
-    best = model.train()
-    model = ASLModel("./Models", subset=10, flow=True, loadModelName=best)
+    # model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
+    # best = model.train()
+    model = ASLModel("./Models", subset=10, flow=True, loadModelName="./runs/Apr11_14-13-34_serverpc/2025-04-12_11-06-26_10_71-429_flow.ASL")
     model.test()
