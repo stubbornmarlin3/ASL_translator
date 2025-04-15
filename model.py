@@ -114,8 +114,7 @@ class ASLModel:
             plt.xticks(ticks=range(self.subset), labels=labels, rotation=60)
             plt.yticks(ticks=range(self.subset), labels=labels)
             plt.gca().xaxis.set_ticks_position("bottom")
-            plt.tight_layout()
-            plt.subplots_adjust(bottom=0.25)  # Prevent labels from being cut off
+            plt.subplots_adjust(bottom=0.5)  # Prevent labels from being cut off
             plt.xlabel("Predicted")
             plt.ylabel("Actual")
             plt.title("Confusion Matrix")
