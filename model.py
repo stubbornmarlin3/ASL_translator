@@ -117,7 +117,7 @@ class ASLModel:
             plt.xlabel("Predicted")
             plt.ylabel("Actual")
             plt.title("Confusion Matrix")
-            plt.savefig('confusionMatrix.png')
+            plt.savefig('confusionMatrix.png', bbox_inches="tight")
 
 
     def train(self):
