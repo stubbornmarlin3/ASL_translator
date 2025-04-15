@@ -97,7 +97,7 @@ class ASLModel:
                     confusionMatrix[i,j] = torch.sum(arr == j).item() * 100.0 / count
 
             plt.clf()
-            plt.figure(figsize=(10,10))
+            plt.figure(1, figsize=(10,10))
             plt.matshow(confusionMatrix, fignum=1)
             plt.colorbar()
 
@@ -114,7 +114,6 @@ class ASLModel:
             plt.xticks(ticks=range(self.subset), labels=labels, rotation=60)
             plt.yticks(ticks=range(self.subset), labels=labels)
             plt.gca().xaxis.set_ticks_position("bottom")
-            plt.subplots_adjust(bottom=0.5)  # Prevent labels from being cut off
             plt.xlabel("Predicted")
             plt.ylabel("Actual")
             plt.title("Confusion Matrix")
