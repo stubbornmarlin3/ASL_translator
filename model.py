@@ -82,7 +82,7 @@ class ASLModel:
                 self.writer.add_scalar(f"Valid/accuracy", accuracy, epoch)
                 self.writer.add_scalar(f"Valid/loss", avgLoss, epoch)
         else:
-            
+            # Build confusion matrix
             confusionMatrix = torch.zeros((self.subset, self.subset))
             allPred = torch.cat(allPred)
             allTruth = torch.cat(allTruth)
@@ -98,20 +98,22 @@ class ASLModel:
 
             plt.clf()
             plt.figure(figsize=(10,8))
-            plt.matshow(confusionMatrix, cmap="viridis", fignum=1)
+            plt.matshow(confusionMatrix, fignum=1)
             plt.colorbar()
 
-                    # Add values
+            # Add values
             for i in range(self.subset):
                 for j in range(self.subset):
                     value = confusionMatrix[i, j].item()
-                    plt.text(j, i, f'{value:.1f}%', ha='center', va='center', color='white' if value > 50 else 'black')
-            # Add index labels
+                    plt.text(j, i, f'{value/100.0:.2f}', ha='center', va='center', color='black' if value > 50 else 'white')
 
+            # Add index labels
             with open("./MS-ASL/MSASL_classes.json") as f:
                 labels = f.read()
-            plt.xticks(ticks=range(self.subset), labels=loads(labels)[:self.subset])
-            plt.yticks(ticks=range(self.subset), labels=range(self.subset))
+            labels = loads(labels)[:self.subset]
+            plt.xticks(ticks=range(self.subset), labels=labels, rotation=60)
+            plt.yticks(ticks=range(self.subset), labels=labels)
+            plt.gca().xaxis.set_ticks_position("bottom")
             plt.xlabel("Predicted")
             plt.ylabel("Actual")
             plt.title("Confusion Matrix")
@@ -179,5 +181,5 @@ class ASLModel:
 if __name__ == "__main__":
     # model = ASLModel("./Models", numEpochs=500, batchSize=4, subset=10, flow=True)
     # best = model.train()
-    model = ASLModel("./Models", subset=10, flow=True, loadModelName="./runs/Apr11_14-13-34_serverpc/2025-04-12_11-06-26_10_71-429_flow.ASL")
+    model = ASLModel("./Models", subset=10, flow=True, loadModelName="./Models/2025-04-12_11-06-26_10_71-429_flow.ASL")
     model.test()
