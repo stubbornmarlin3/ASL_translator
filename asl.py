@@ -49,9 +49,15 @@ class ASL(torch.nn.Module):
     
 if __name__ == "__main__":
 
+    import time
+
     x = torch.randn((1,3,64,224,224))
+
     model = ASL()
-
-    y = model(x)
-
-    print(y.size())
+    model.eval()
+    
+    start_time = time.time()
+    with torch.no_grad():
+        y = model(x)
+    end_time = time.time()
+    print("Seconds: ", end_time-start_time)
