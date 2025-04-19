@@ -72,7 +72,7 @@ future, real-time ASL gesture recognition projects.
 
 - The tensor is then fed to the model for a forward pass. The model then outputs unnormalized values called logits.
 
-- The output logits are fed into the CrossEntropyLoss function, which calculates the prediction error. Gradients are then computed and back propagated through the network.
+- The output logits are fed into the `CrossEntropyLoss` function, which calculates the prediction error. Gradients are then computed and back propagated through the network.
 
 - The `AdamW` optimizer is used to update the parameter weights based on the gradients. An initial learning rate of 10<sup>-3</sup> was used, with the `CosineAnnealingLR` scheduler reducing the learning rate after each epoch, to a minimum of 10<sup>-8</sup>.
 
