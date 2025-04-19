@@ -1,0 +1,7 @@
+Train/
+Valid/
+Test/
+runsServer/
+data/
+.DS_store
+__pycache__/
