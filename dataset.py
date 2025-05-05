@@ -284,7 +284,7 @@ class Dataset:
         if not os.path.exists(f"{self.savePath}/Videos"):
             os.mkdir(f"{self.savePath}/Videos")
 
-    def download(self, start:int=0):
+    def download(self, start:int=0) -> None:
         """
         Downloads all videos in dataset specified to save path specified.\n
         Can specify a starting index (defaults to 0)
@@ -326,8 +326,11 @@ class Dataloader:
         "Return iterable object"
         return self
     
-    def __getitem__(self, index:int) -> tuple[torch.Tensor, int]:
-        "Return tensor of loaded video at index and its label"
+    def __getitem__(self, index:int) -> tuple[torch.Tensor, int] | None:
+        """
+        Return tensor of loaded video at index and its label
+        Returns None if sample video is not available
+        """
         if isinstance(index, slice):
             raise ValueError("Index cannot be slice")
         try:

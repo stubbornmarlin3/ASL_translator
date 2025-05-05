@@ -120,7 +120,7 @@ class ASLModel:
             plt.savefig('confusionMatrix.png', bbox_inches="tight")
 
 
-    def train(self):
+    def train(self) -> str:
 
         for epoch in range(self.numEpochs):
             print(f"--- Epoch {epoch+1} ---")
